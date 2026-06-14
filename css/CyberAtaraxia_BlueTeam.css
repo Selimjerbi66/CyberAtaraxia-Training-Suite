@@ -14,7 +14,7 @@ body{background:var(--bg);color:var(--tx);font-family:var(--sa);font-size:14px;l
 .auth-scr{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;padding:20px}
 .auth-wrap{width:480px;display:flex;flex-direction:column;gap:0}
 .auth-brand{text-align:center;margin-bottom:32px}
-.auth-brand-logo-img{height: 120px;max-width: 320px;margin-bottom: 16px;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;object-fit:contain}
+.auth-brand-logo-img{height: 160px;max-width: 320px;margin-bottom: 16px;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;object-fit:contain}
 .auth-brand-logo-img.hidden{display:none}
 .auth-brand-name{font-family:var(--mo);font-size:22px;font-weight:700;color:var(--cy);letter-spacing:.03em;margin-bottom:4px}
 .auth-brand-name span{color:var(--tx2);font-weight:400}
@@ -74,7 +74,7 @@ body{background:var(--bg);color:var(--tx);font-family:var(--sa);font-size:14px;l
 /* ── HEADER ── */
 .hdr{background:var(--bg2);border-bottom:1px solid var(--bd);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100}
 .hdr-left{display:flex;align-items:center;gap:12px}
-.hdr-logo-img{height:28px;object-fit:contain}
+.hdr-logo-img{height:42px;object-fit:contain}
 .hdr-logo-img.hidden{display:none}
 .logo{font-family:var(--mo);font-size:14px;font-weight:700;color:var(--cy);letter-spacing:.02em}
 .logo span{color:var(--tx2);font-weight:400}
